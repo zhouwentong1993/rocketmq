@@ -14,9 +14,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-export ROCKETMQ_HOME=/Users/finup123/IdeaProjects/rocketmq/distribution
-echo $ROCKETMQ_HOME
+cur=$(pwd)
+export ROCKETMQ_HOME="$cur"/target/rocketmq-4.9.2-SNAPSHOT/rocketmq-4.9.2-SNAPSHOT
 if [ -z "$ROCKETMQ_HOME" ] ; then
   ## resolve links - $0 may be a link to maven's home
   PRG="$0"
