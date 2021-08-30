@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+export ROCKETMQ_HOME=/Users/finup123/IdeaProjects/rocketmq/distribution
+echo $ROCKETMQ_HOME
 if [ -z "$ROCKETMQ_HOME" ] ; then
   ## resolve links - $0 may be a link to maven's home
   PRG="$0"
