@@ -47,6 +47,7 @@ public class NamesrvStartup {
     private static Properties properties = null;
     private static CommandLine commandLine = null;
 
+    // 入口函数
     public static void main(String[] args) {
         main0(args);
     }
