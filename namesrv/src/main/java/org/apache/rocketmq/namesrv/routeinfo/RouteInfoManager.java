@@ -45,22 +45,31 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+
+/**
+ * 路由信息管理
+ */
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
-    private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
+    private static final long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2L;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    // topic -> Queue 的映射关系
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    // broker 映射关系
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    // 不明确 cluster 是指什么？？ todo
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    // broker -> 存活的 broker
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    // broker -> 排除的 broker
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
-        this.topicQueueTable = new HashMap<String, List<QueueData>>(1024);
-        this.brokerAddrTable = new HashMap<String, BrokerData>(128);
-        this.clusterAddrTable = new HashMap<String, Set<String>>(32);
-        this.brokerLiveTable = new HashMap<String, BrokerLiveInfo>(256);
-        this.filterServerTable = new HashMap<String, List<String>>(256);
+        this.topicQueueTable = new HashMap<>(1024);
+        this.brokerAddrTable = new HashMap<>(128);
+        this.clusterAddrTable = new HashMap<>(32);
+        this.brokerLiveTable = new HashMap<>(256);
+        this.filterServerTable = new HashMap<>(256);
     }
 
     public byte[] getAllClusterInfo() {
@@ -113,37 +122,31 @@ public class RouteInfoManager {
             try {
                 this.lock.writeLock().lockInterruptibly();
 
-                Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
-                if (null == brokerNames) {
-                    brokerNames = new HashSet<String>();
-                    this.clusterAddrTable.put(clusterName, brokerNames);
-                }
+                Set<String> brokerNames = this.clusterAddrTable.computeIfAbsent(clusterName, k -> new HashSet<>());
                 brokerNames.add(brokerName);
 
                 boolean registerFirst = false;
 
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-                if (null == brokerData) {
+                // 首次注册
+                if (brokerData == null) {
                     registerFirst = true;
-                    brokerData = new BrokerData(clusterName, brokerName, new HashMap<Long, String>());
+                    brokerData = new BrokerData(clusterName, brokerName, new HashMap<>());
                     this.brokerAddrTable.put(brokerName, brokerData);
                 }
+
+                // broker id -> broker address
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
                 //Switch slave to master: first remove <1, IP:PORT> in namesrv, then add <0, IP:PORT>
                 //The same IP:PORT must only have one record in brokerAddrTable
-                Iterator<Entry<Long, String>> it = brokerAddrsMap.entrySet().iterator();
-                while (it.hasNext()) {
-                    Entry<Long, String> item = it.next();
-                    if (null != brokerAddr && brokerAddr.equals(item.getValue()) && brokerId != item.getKey()) {
-                        it.remove();
-                    }
-                }
+                brokerAddrsMap.entrySet().removeIf(item -> brokerAddr != null && brokerAddr.equals(item.getValue()) && brokerId != item.getKey());
 
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
-                registerFirst = registerFirst || (null == oldAddr);
+                registerFirst = registerFirst || (oldAddr == null);
 
-                if (null != topicConfigWrapper
-                    && MixAll.MASTER_ID == brokerId) {
+                // 如果是主节点
+                if (topicConfigWrapper != null
+                    && brokerId == MixAll.MASTER_ID) {
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
                         || registerFirst) {
                         ConcurrentMap<String, TopicConfig> tcTable =
@@ -196,7 +199,7 @@ public class RouteInfoManager {
 
     public boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
         DataVersion prev = queryBrokerTopicConfig(brokerAddr);
-        return null == prev || !prev.equals(dataVersion);
+        return prev == null || !prev.equals(dataVersion);
     }
 
     public DataVersion queryBrokerTopicConfig(final String brokerAddr) {
@@ -224,7 +227,7 @@ public class RouteInfoManager {
 
         List<QueueData> queueDataList = this.topicQueueTable.get(topicConfig.getTopicName());
         if (null == queueDataList) {
-            queueDataList = new LinkedList<QueueData>();
+            queueDataList = new LinkedList<>();
             queueDataList.add(queueData);
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataList);
             log.info("new topic registered, {} {}", topicConfig.getTopicName(), queueData);

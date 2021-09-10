@@ -16,18 +16,21 @@
  */
 package org.apache.rocketmq.namesrv.kvconfig;
 
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.body.KVTable;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.namesrv.NamesrvController;
+
 public class KVConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
@@ -35,7 +38,7 @@ public class KVConfigManager {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
-        new HashMap<String, HashMap<String, String>>();
+            new HashMap<>();
 
     public KVConfigManager(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
@@ -50,8 +53,8 @@ public class KVConfigManager {
         }
         if (content != null) {
             KVConfigSerializeWrapper kvConfigSerializeWrapper =
-                KVConfigSerializeWrapper.fromJson(content, KVConfigSerializeWrapper.class);
-            if (null != kvConfigSerializeWrapper) {
+                    RemotingSerializable.fromJson(content, KVConfigSerializeWrapper.class);
+            if (kvConfigSerializeWrapper != null) {
                 this.configTable.putAll(kvConfigSerializeWrapper.getConfigTable());
                 log.info("load KV config table OK");
             }
@@ -63,19 +66,19 @@ public class KVConfigManager {
             this.lock.writeLock().lockInterruptibly();
             try {
                 HashMap<String, String> kvTable = this.configTable.get(namespace);
-                if (null == kvTable) {
-                    kvTable = new HashMap<String, String>();
+                if (kvTable == null) {
+                    kvTable = new HashMap<>();
                     this.configTable.put(namespace, kvTable);
                     log.info("putKVConfig create new Namespace {}", namespace);
                 }
 
                 final String prev = kvTable.put(key, value);
-                if (null != prev) {
+                if (prev != null) {
                     log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}",
-                        namespace, key, value);
+                            namespace, key, value);
                 } else {
                     log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}",
-                        namespace, key, value);
+                            namespace, key, value);
                 }
             } finally {
                 this.lock.writeLock().unlock();
@@ -101,7 +104,7 @@ public class KVConfigManager {
                 }
             } catch (IOException e) {
                 log.error("persist kvconfig Exception, "
-                    + this.namesrvController.getNamesrvConfig().getKvConfigPath(), e);
+                        + this.namesrvController.getNamesrvConfig().getKvConfigPath(), e);
             } finally {
                 this.lock.readLock().unlock();
             }
@@ -119,7 +122,7 @@ public class KVConfigManager {
                 if (null != kvTable) {
                     String value = kvTable.remove(key);
                     log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}",
-                        namespace, key, value);
+                            namespace, key, value);
                 }
             } finally {
                 this.lock.writeLock().unlock();
@@ -174,19 +177,11 @@ public class KVConfigManager {
             this.lock.readLock().lockInterruptibly();
             try {
                 log.info("--------------------------------------------------------");
-
-                {
-                    log.info("configTable SIZE: {}", this.configTable.size());
-                    Iterator<Entry<String, HashMap<String, String>>> it =
-                        this.configTable.entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry<String, HashMap<String, String>> next = it.next();
-                        Iterator<Entry<String, String>> itSub = next.getValue().entrySet().iterator();
-                        while (itSub.hasNext()) {
-                            Entry<String, String> nextSub = itSub.next();
-                            log.info("configTable NS: {} Key: {} Value: {}", next.getKey(), nextSub.getKey(),
+                log.info("configTable SIZE: {}", this.configTable.size());
+                for (Entry<String, HashMap<String, String>> next : this.configTable.entrySet()) {
+                    for (Entry<String, String> nextSub : next.getValue().entrySet()) {
+                        log.info("configTable NS: {} Key: {} Value: {}", next.getKey(), nextSub.getKey(),
                                 nextSub.getValue());
-                        }
                     }
                 }
             } finally {

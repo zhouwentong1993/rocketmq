@@ -31,6 +31,7 @@ public class BrokerHousekeepingService implements ChannelEventListener {
         this.namesrvController = namesrvController;
     }
 
+    // 注册 channel 事件
     @Override
     public void onChannelConnect(String remoteAddr, Channel channel) {
     }

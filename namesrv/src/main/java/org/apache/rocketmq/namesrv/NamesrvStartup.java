@@ -55,6 +55,7 @@ public class NamesrvStartup {
     public static NamesrvController main0(String[] args) {
 
         try {
+            // 从命令行或默认参数读取数据，创建 NamesrvController 对象。
             NamesrvController controller = createNamesrvController(args);
             start(controller);
             String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
@@ -75,7 +76,7 @@ public class NamesrvStartup {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
-        if (null == commandLine) {
+        if (commandLine == null) {
             System.exit(-1);
             return null;
         }
@@ -117,6 +118,7 @@ public class NamesrvStartup {
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
         lc.reset();
+        // 为了便于观察，将 logback 的日志级别设为 debug。
         configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
 
         log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
@@ -134,7 +136,7 @@ public class NamesrvStartup {
 
     public static NamesrvController start(final NamesrvController controller) throws Exception {
 
-        if (null == controller) {
+        if (controller == null) {
             throw new IllegalArgumentException("NamesrvController is null");
         }
 

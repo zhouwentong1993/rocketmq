@@ -42,13 +42,17 @@ import org.apache.rocketmq.srvutil.FileWatchService;
 public class NamesrvController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
+    // name server 基础配置，包含配置文件位置、RocketMQ_HOME 等。
     private final NamesrvConfig namesrvConfig;
 
+    // Netty 基础配置，监听端口，线程池配置等。
     private final NettyServerConfig nettyServerConfig;
 
+    // 定时任务
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
     private final KVConfigManager kvConfigManager;
+    // 路由信息
     private final RouteInfoManager routeInfoManager;
 
     private RemotingServer remotingServer;
@@ -58,6 +62,7 @@ public class NamesrvController {
     private ExecutorService remotingExecutor;
 
     private Configuration configuration;
+    // 估计是实现配置文件实时更新的功能。
     private FileWatchService fileWatchService;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
@@ -77,29 +82,25 @@ public class NamesrvController {
 
         this.kvConfigManager.load();
 
+        // 创建 Netty Server，监听客户端请求
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
+        // 初始化请求处理入口
         this.registerProcessor();
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        // 两个定时任务
+        this.scheduledTask();
 
-            @Override
-            public void run() {
-                NamesrvController.this.routeInfoManager.scanNotActiveBroker();
-            }
-        }, 5, 10, TimeUnit.SECONDS);
+        // 处理 tls 文件，通过 FileWatch 实时监听文件变化。
+        dealWithTlsFile();
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        return true;
+    }
 
-            @Override
-            public void run() {
-                NamesrvController.this.kvConfigManager.printAllPeriodically();
-            }
-        }, 1, 10, TimeUnit.MINUTES);
-
+    private void dealWithTlsFile() {
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {
@@ -137,8 +138,15 @@ public class NamesrvController {
                 log.warn("FileWatchService created error, can't load the certificate dynamically");
             }
         }
+    }
 
-        return true;
+    private void scheduledTask() {
+
+        // 每隔十秒扫描不活跃的 broker。
+        this.scheduledExecutorService.scheduleAtFixedRate(NamesrvController.this.routeInfoManager::scanNotActiveBroker, 5, 10, TimeUnit.SECONDS);
+
+        // 每隔十秒打印 broker 信息
+        this.scheduledExecutorService.scheduleAtFixedRate(NamesrvController.this.kvConfigManager::printAllPeriodically, 1, 10, TimeUnit.MINUTES);
     }
 
     private void registerProcessor() {

@@ -36,6 +36,14 @@
         </encoder>
     </appender>
 
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH\:mm\:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+
     <appender name="RocketmqNamesrvAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/namesrv.log</file>
@@ -57,6 +65,8 @@
     <appender name="RocketmqNamesrvAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqNamesrvAppender_inner"/>
         <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="STDOUT"/>
+
     </appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -68,27 +78,34 @@
     </appender>
 
     <logger name="RocketmqNamesrv" additivity="false">
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="RocketmqNamesrvAppender"/>
+        <appender-ref ref="STDOUT"/>
+
     </logger>
 
     <logger name="RocketmqCommon" additivity="false">
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="RocketmqNamesrvAppender"/>
+        <appender-ref ref="STDOUT"/>
+
     </logger>
 
     <logger name="RocketmqRemoting" additivity="false">
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="RocketmqNamesrvAppender"/>
+        <appender-ref ref="STDOUT"/>
+
     </logger>
 
     <logger name="RocketmqNamesrvConsole" additivity="false">
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
 
     <root>
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="DefaultAppender"/>
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
