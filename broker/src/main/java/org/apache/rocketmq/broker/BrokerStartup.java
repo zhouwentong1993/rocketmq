@@ -57,7 +57,6 @@ public class BrokerStartup {
     public static InternalLogger log;
 
     public static void main(String[] args) {
-        // temp todo
         setEnv("ROCKETMQ_HOME","/Users/finup123/IdeaProjects/rocketmq/distribution/target/rocketmq-4.9.2-SNAPSHOT/rocketmq-4.9.2-SNAPSHOT");
         start(createBrokerController(args));
     }
