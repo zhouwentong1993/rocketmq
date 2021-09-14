@@ -92,16 +92,16 @@ public class ProducerManager {
     }
 
     public synchronized void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
-        ClientChannelInfo clientChannelInfoFound = null;
+        ClientChannelInfo clientChannelInfoFound;
 
         ConcurrentHashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
-        if (null == channelTable) {
+        if (channelTable == null) {
             channelTable = new ConcurrentHashMap<>();
             this.groupChannelTable.put(group, channelTable);
         }
 
         clientChannelInfoFound = channelTable.get(clientChannelInfo.getChannel());
-        if (null == clientChannelInfoFound) {
+        if (clientChannelInfoFound == null) {
             channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
             clientChannelTable.put(clientChannelInfo.getClientId(), clientChannelInfo.getChannel());
             log.info("new producer connected, group: {} channel: {}", group,

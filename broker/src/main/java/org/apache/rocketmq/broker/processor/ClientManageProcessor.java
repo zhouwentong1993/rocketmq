@@ -87,7 +87,7 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     data.getGroupName());
             boolean isNotifyConsumerIdsChangedEnable = true;
-            if (null != subscriptionGroupConfig) {
+            if (subscriptionGroupConfig != null) {
                 isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
                 int topicSysFlag = 0;
                 if (data.isUnitMode()) {

@@ -26,8 +26,10 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
-    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    // todo 不知道什么意思
+    private List<MessageQueue> messageQueueList = new ArrayList<>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
+    // 维护路由信息，topic -> queue，topic -> broker
     private TopicRouteData topicRouteData;
 
     public boolean isOrderTopic() {

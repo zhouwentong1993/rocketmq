@@ -61,7 +61,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Wrapping internal implementations for virtually all methods presented in this class.
      */
-    protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
+    protected final DefaultMQProducerImpl defaultMQProducerImpl;
     private final InternalLogger log = ClientLogger.getLog();
     /**
      * Producer group conceptually aggregates all producer instances of exactly same role, which is particularly
@@ -271,11 +271,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * @throws MQClientException if there is any unexpected error.
      */
+    // 初始化
     @Override
     public void start() throws MQClientException {
         this.setProducerGroup(withNamespace(this.producerGroup));
         this.defaultMQProducerImpl.start();
-        if (null != traceDispatcher) {
+        if (traceDispatcher != null) {
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {

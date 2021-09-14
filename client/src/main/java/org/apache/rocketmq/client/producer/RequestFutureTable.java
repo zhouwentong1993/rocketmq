@@ -29,9 +29,13 @@ import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 
+/*
+经典调用模式，这种模式我在极客时间的消息队列课程上的 rpc 设计上看到过。
+通过 CompletableFuture 保存正在执行中的请求，通过 uuid 做映射。值得学习。
+ */
 public class RequestFutureTable {
     private static InternalLogger log = ClientLogger.getLog();
-    private static ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
+    private static ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<>();
     private static final AtomicInteger PRODUCER_NUM = new AtomicInteger(0);
 
     public static ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
@@ -39,7 +43,7 @@ public class RequestFutureTable {
     }
 
     public static void scanExpiredRequest() {
-        final List<RequestResponseFuture> rfList = new LinkedList<RequestResponseFuture>();
+        final List<RequestResponseFuture> rfList = new LinkedList<>();
         Iterator<Map.Entry<String, RequestResponseFuture>> it = requestFutureTable.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, RequestResponseFuture> next = it.next();

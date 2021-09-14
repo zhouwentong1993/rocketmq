@@ -338,14 +338,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         boolean update = false;
 
         if (!addrs.isEmpty()) {
-            if (null == old) {
+            if (old == null) {
                 update = true;
             } else if (addrs.size() != old.size()) {
                 update = true;
             } else {
-                for (int i = 0; i < addrs.size() && !update; i++) {
-                    if (!old.contains(addrs.get(i))) {
+                for (String addr : addrs) {
+                    if (!old.contains(addr)) {
                         update = true;
+                        break;
                     }
                 }
             }
@@ -558,11 +559,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void registerProcessor(int requestCode, NettyRequestProcessor processor, ExecutorService executor) {
         ExecutorService executorThis = executor;
-        if (null == executor) {
+        if (executor == null) {
             executorThis = this.publicExecutor;
         }
 
-        Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
+        Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 
