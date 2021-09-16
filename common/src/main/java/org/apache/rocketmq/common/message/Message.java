@@ -100,7 +100,7 @@ public class Message implements Serializable {
 
     public String getProperty(final String name) {
         if (null == this.properties) {
-            this.properties = new HashMap<String, String>();
+            this.properties = new HashMap<>();
         }
 
         return this.properties.get(name);

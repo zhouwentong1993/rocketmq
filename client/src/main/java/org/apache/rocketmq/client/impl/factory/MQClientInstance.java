@@ -554,7 +554,7 @@ public class MQClientInstance {
         }
     }
 
-    // 根据 topic 从 name server 更新 topic 路由信息
+    // 根据 topic 从 name server 更新 topic 路由信息 read
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
                                                       DefaultMQProducer defaultMQProducer) {
         try {
@@ -577,6 +577,7 @@ public class MQClientInstance {
                     }
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);
+                        // 如果跟之前的相比，发生变化了，需要更新本地数据
                         boolean changed = topicRouteDataIsChange(old, topicRouteData);
                         if (!changed) {
                             changed = this.isNeedUpdateTopicRouteInfo(topic);
@@ -587,6 +588,7 @@ public class MQClientInstance {
                         if (changed) {
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
+                            // 更新 brokerAddrTable，不淘汰老旧的吗？
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
@@ -729,12 +731,12 @@ public class MQClientInstance {
         }
     }
 
-    private boolean topicRouteDataIsChange(TopicRouteData olddata, TopicRouteData nowdata) {
-        if (olddata == null || nowdata == null) {
+    private boolean topicRouteDataIsChange(TopicRouteData oldData, TopicRouteData newData) {
+        if (oldData == null || newData == null) {
             return true;
         }
-        TopicRouteData old = olddata.cloneTopicRouteData();
-        TopicRouteData now = nowdata.cloneTopicRouteData();
+        TopicRouteData old = oldData.cloneTopicRouteData();
+        TopicRouteData now = newData.cloneTopicRouteData();
         Collections.sort(old.getQueueDatas());
         Collections.sort(old.getBrokerDatas());
         Collections.sort(now.getQueueDatas());
@@ -743,6 +745,7 @@ public class MQClientInstance {
 
     }
 
+    // 测试 producerTable 数据是否需要更新，就是看 topic 数据对应的 TopicPublishInfo 是否为空或者 isOk 是否为 true
     private boolean isNeedUpdateTopicRouteInfo(final String topic) {
         boolean result = false;
         Iterator<Entry<String, MQProducerInner>> producerIt = this.producerTable.entrySet().iterator();
@@ -939,8 +942,10 @@ public class MQClientInstance {
     }
 
     public String findBrokerAddressInPublish(final String brokerName) {
+        // 为什么要到这个 brokerAddrTable 里面取呢，为什么不直接取 topicRouteInfo 的呢？
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
+            // 注意，要取 master 地址。
             return map.get(MixAll.MASTER_ID);
         }
 

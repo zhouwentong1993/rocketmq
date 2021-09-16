@@ -19,11 +19,11 @@ package org.apache.rocketmq.client.latency;
 
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class MQFaultStrategy {
-    private final static InternalLogger log = ClientLogger.getLog();
+    private static final InternalLogger log = ClientLogger.getLog();
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();
 
     private boolean sendLatencyFaultEnable = false;
@@ -55,19 +55,27 @@ public class MQFaultStrategy {
         this.sendLatencyFaultEnable = sendLatencyFaultEnable;
     }
 
+    // 根据 broker name 和路由信息 选择一个消息队列
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
+        // 是否允许故障延迟，默认不允许
         if (this.sendLatencyFaultEnable) {
             try {
+                // 获取一个递增的下标
                 int index = tpInfo.getSendWhichQueue().incrementAndGet();
+                // 对每一个 message queue 判断是否可行。
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
                     int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
-                    if (pos < 0)
+                    if (pos < 0) {
                         pos = 0;
+                    }
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
-                    if (latencyFaultTolerance.isAvailable(mq.getBrokerName()))
+                    // 该 broker 是否可用，故障延迟时间到了。
+                    if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
                         return mq;
+                    }
                 }
 
+                // 不一定最好的那个
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
                 int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
                 if (writeQueueNums > 0) {
@@ -85,11 +93,17 @@ public class MQFaultStrategy {
             }
 
             return tpInfo.selectOneMessageQueue();
+        } else {
+            return tpInfo.selectOneMessageQueue(lastBrokerName);
         }
-
-        return tpInfo.selectOneMessageQueue(lastBrokerName);
     }
 
+    /**
+     * 在 sendLatencyFaultEnable 条件下，更新 FaultItem。
+     * @param brokerName 向哪个 broker 发起请求
+     * @param currentLatency 花了多少时间
+     * @param isolation 是否隔离，在抛出网路相关异常的时候，被设置为隔离
+     */
     public void updateFaultItem(final String brokerName, final long currentLatency, boolean isolation) {
         if (this.sendLatencyFaultEnable) {
             long duration = computeNotAvailableDuration(isolation ? 30000 : currentLatency);
@@ -97,10 +111,12 @@ public class MQFaultStrategy {
         }
     }
 
+    // 根据时延来决定 broker 不可用的时间，时延越长，不可用的时间就越长。
     private long computeNotAvailableDuration(final long currentLatency) {
         for (int i = latencyMax.length - 1; i >= 0; i--) {
-            if (currentLatency >= latencyMax[i])
+            if (currentLatency >= latencyMax[i]) {
                 return this.notAvailableDuration[i];
+            }
         }
 
         return 0;

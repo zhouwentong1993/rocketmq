@@ -25,14 +25,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
-    private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<String, FaultItem>(16);
+    private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<>(16);
 
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
         FaultItem old = this.faultItemTable.get(name);
-        if (null == old) {
+        if (old == null) {
             final FaultItem faultItem = new FaultItem(name);
             faultItem.setCurrentLatency(currentLatency);
             faultItem.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
@@ -53,8 +53,9 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         final FaultItem faultItem = this.faultItemTable.get(name);
         if (faultItem != null) {
             return faultItem.isAvailable();
+        } else {
+            return true;
         }
-        return true;
     }
 
     @Override
@@ -65,7 +66,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     @Override
     public String pickOneAtLeast() {
         final Enumeration<FaultItem> elements = this.faultItemTable.elements();
-        List<FaultItem> tmpList = new LinkedList<FaultItem>();
+        List<FaultItem> tmpList = new LinkedList<>();
         while (elements.hasMoreElements()) {
             final FaultItem faultItem = elements.nextElement();
             tmpList.add(faultItem);
@@ -74,12 +75,14 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         if (!tmpList.isEmpty()) {
             Collections.shuffle(tmpList);
 
+            // 排序，好的在前面。先判断是否可用，然后是延时时间，最后是可用时间。
             Collections.sort(tmpList);
 
             final int half = tmpList.size() / 2;
             if (half <= 0) {
                 return tmpList.get(0).getName();
             } else {
+                // 为什么要这样做，为什么不直接选第一个呢？
                 final int i = this.whichItemWorst.incrementAndGet() % half;
                 return tmpList.get(i).getName();
             }
@@ -96,7 +99,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             '}';
     }
 
-    class FaultItem implements Comparable<FaultItem> {
+    static class FaultItem implements Comparable<FaultItem> {
         private final String name;
         private volatile long currentLatency;
         private volatile long startTimestamp;
@@ -108,22 +111,24 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         @Override
         public int compareTo(final FaultItem other) {
             if (this.isAvailable() != other.isAvailable()) {
-                if (this.isAvailable())
+                if (this.isAvailable()) {
                     return -1;
+                }
 
-                if (other.isAvailable())
+                if (other.isAvailable()) {
                     return 1;
+                }
             }
 
-            if (this.currentLatency < other.currentLatency)
+            if (this.currentLatency < other.currentLatency) {
                 return -1;
-            else if (this.currentLatency > other.currentLatency) {
+            } else if (this.currentLatency > other.currentLatency) {
                 return 1;
             }
 
-            if (this.startTimestamp < other.startTimestamp)
+            if (this.startTimestamp < other.startTimestamp) {
                 return -1;
-            else if (this.startTimestamp > other.startTimestamp) {
+            } else if (this.startTimestamp > other.startTimestamp) {
                 return 1;
             }
 

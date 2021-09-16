@@ -409,9 +409,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         }
 
         private Set<String> tryGetMessageQueueBrokerSet(DefaultMQProducerImpl producer, String topic) {
-            Set<String> brokerSet = new HashSet<String>();
+            Set<String> brokerSet = new HashSet<>();
             TopicPublishInfo topicPublishInfo = producer.getTopicPublishInfoTable().get(topic);
-            if (null == topicPublishInfo || !topicPublishInfo.ok()) {
+            if (topicPublishInfo == null || !topicPublishInfo.ok()) {
                 producer.getTopicPublishInfoTable().putIfAbsent(topic, new TopicPublishInfo());
                 producer.getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
                 topicPublishInfo = producer.getTopicPublishInfoTable().get(topic);

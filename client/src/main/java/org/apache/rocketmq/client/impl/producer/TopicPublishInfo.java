@@ -69,28 +69,30 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
-        if (lastBrokerName == null) {
-            return selectOneMessageQueue();
-        } else {
+        if (lastBrokerName != null) {
             for (int i = 0; i < this.messageQueueList.size(); i++) {
                 int index = this.sendWhichQueue.incrementAndGet();
                 int pos = Math.abs(index) % this.messageQueueList.size();
-                if (pos < 0)
+                // 为什么要判断 < 0 呢，是因为当 Math.abs 的参数是 Integer.MIN_VALUE 时，返回值仍然是 Integer.MIN_VALUE
+                if (pos < 0) {
                     pos = 0;
+                }
                 MessageQueue mq = this.messageQueueList.get(pos);
+                // 尽量不选择之前的 broker
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }
             }
-            return selectOneMessageQueue();
         }
+        return selectOneMessageQueue();
     }
 
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.incrementAndGet();
         int pos = Math.abs(index) % this.messageQueueList.size();
-        if (pos < 0)
+        if (pos < 0) {
             pos = 0;
+        }
         return this.messageQueueList.get(pos);
     }
 
