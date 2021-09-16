@@ -376,6 +376,7 @@ public class MQClientAPIImpl {
         return this.processSendResponse(brokerName, msg, response, addr);
     }
 
+    // 异步消息发送 read
     private void sendMessageAsync(
             final String addr,
             final String brokerName,

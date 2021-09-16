@@ -75,7 +75,7 @@ public class MQFaultStrategy {
                     }
                 }
 
-                // 不一定最好的那个
+                // 不一定最好的那个，如果每次都选择到最好的那个，就会造成所有的请求都集中到最好的那个上，对 broker 不好。
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
                 int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
                 if (writeQueueNums > 0) {
