@@ -54,6 +54,7 @@
     </appender>
     <appender name="RocketmqBrokerAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqBrokerAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="RocketmqProtectionAppender_inner"
@@ -75,6 +76,7 @@
     </appender>
     <appender name="RocketmqProtectionAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqProtectionAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="RocketmqWaterMarkAppender_inner"
@@ -96,6 +98,7 @@
     </appender>
     <appender name="RocketmqWaterMarkAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqWaterMarkAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="RocketmqStoreAppender_inner"
@@ -117,6 +120,7 @@
     </appender>
     <appender name="RocketmqStoreAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqStoreAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="RocketmqRemotingAppender_inner"
@@ -138,6 +142,7 @@
     </appender>
     <appender name="RocketmqRemotingAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqRemotingAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="RocketmqStoreErrorAppender_inner"
@@ -159,6 +164,7 @@
     </appender>
     <appender name="RocketmqStoreErrorAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqStoreErrorAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
 
@@ -181,6 +187,7 @@
     </appender>
     <appender name="RocketmqTransactionAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqTransactionAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="RocketmqRebalanceLockAppender_inner"
@@ -202,6 +209,7 @@
     </appender>
     <appender name="RocketmqRebalanceLockAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqRebalanceLockAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="RocketmqFilterAppender_inner"
@@ -223,6 +231,7 @@
     </appender>
     <appender name="RocketmqFilterAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqFilterAppender_inner"/>
+        <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="RocketmqStatsAppender"
@@ -268,61 +277,73 @@
     <logger name="RocketmqBroker" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqBrokerAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqProtection" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqProtectionAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqWaterMark" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqWaterMarkAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqCommon" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqBrokerAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqStore" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqStoreAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqStoreError" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqStoreErrorAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqTransaction" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqTransactionAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqRebalanceLock" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqRebalanceLockAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqRemoting" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqRemotingAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqStats" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqStatsAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqCommercial" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqCommercialAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqFilter" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqFilterAppender"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="RocketmqConsole" additivity="false">
@@ -333,5 +354,6 @@
     <root>
         <level value="INFO"/>
         <appender-ref ref="DefaultAppender"/>
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
