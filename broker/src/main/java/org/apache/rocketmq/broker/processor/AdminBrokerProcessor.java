@@ -147,6 +147,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         this.brokerController = brokerController;
     }
 
+    // broker 对外请求处理入口
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {

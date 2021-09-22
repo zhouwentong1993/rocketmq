@@ -39,7 +39,8 @@ public class MappedFileQueue {
 
     private final int mappedFileSize;
 
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    // 用到 CopyOnWriteArrayList 干什么用？
+    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<>();
 
     private final AllocateMappedFileService allocateMappedFileService;
 
@@ -242,6 +243,7 @@ public class MappedFileQueue {
 
         while (!this.mappedFiles.isEmpty()) {
             try {
+                // 获取最后一个？
                 mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
                 break;
             } catch (IndexOutOfBoundsException e) {

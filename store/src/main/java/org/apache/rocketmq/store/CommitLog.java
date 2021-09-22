@@ -69,6 +69,7 @@ public class CommitLog {
 
     private volatile long beginTimeInLock = 0;
 
+    // 两个子类，自旋锁和非公平锁。
     protected final PutMessageLock putMessageLock;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
@@ -564,6 +565,7 @@ public class CommitLog {
         return keyBuilder.toString();
     }
 
+    // 异步处理消息
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -571,17 +573,18 @@ public class CommitLog {
         // on the client)
         msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
         // Back to Results
-        AppendMessageResult result = null;
+        AppendMessageResult result;
 
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
-        int queueId = msg.getQueueId();
+        int queueId;
 
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
+            // delay message 处理，暂时不关注。
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
@@ -618,11 +621,12 @@ public class CommitLog {
         msg.setEncodedBuff(putMessageThreadLocal.getEncoder().encoderBuffer);
         PutMessageContext putMessageContext = new PutMessageContext(generateKey(putMessageThreadLocal.getKeyBuilder(), msg));
 
-        long elapsedTimeInLock = 0;
+        long elapsedTimeInLock;
         MappedFile unlockMappedFile = null;
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
+            // mmap 具体方位。 read
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
             this.beginTimeInLock = beginLockTimestamp;
@@ -631,15 +635,16 @@ public class CommitLog {
             // global
             msg.setStoreTimestamp(beginLockTimestamp);
 
-            if (null == mappedFile || mappedFile.isFull()) {
+            if (mappedFile == null || mappedFile.isFull()) {
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
-            if (null == mappedFile) {
+            if (mappedFile == null) {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                 beginTimeInLock = 0;
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
             }
 
+            // append message
             result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
             switch (result.getStatus()) {
                 case PUT_OK:
