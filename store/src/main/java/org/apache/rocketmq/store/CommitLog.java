@@ -64,7 +64,7 @@ public class CommitLog {
 
     private final AppendMessageCallback appendMessageCallback;
     private final ThreadLocal<PutMessageThreadLocal> putMessageThreadLocal;
-    protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
+    protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<>(1024);
     protected volatile long confirmOffset = -1L;
 
     private volatile long beginTimeInLock = 0;
@@ -1265,16 +1265,18 @@ public class CommitLog {
             this.maxMessageSize = size;
         }
 
+        @Override
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
-            final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
-            // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
+                                            final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
+            // STORE TIMESTAMP + STORE HOST ADDRESS + OFFSET <br>
 
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
 
             Supplier<String> msgIdSupplier = () -> {
                 int sysflag = msgInner.getSysFlag();
-                int msgIdLen = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
+                // 计算 msgId
+                int msgIdLen = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? (4 + 4 + 8) : (16 + 4 + 8);
                 ByteBuffer msgIdBuffer = ByteBuffer.allocate(msgIdLen);
                 MessageExt.socketAddress2ByteBuffer(msgInner.getStoreHost(), msgIdBuffer);
                 msgIdBuffer.clear();//because socketAddress2ByteBuffer flip the buffer
@@ -1284,11 +1286,7 @@ public class CommitLog {
 
             // Record ConsumeQueue information
             String key = putMessageContext.getTopicQueueTableKey();
-            Long queueOffset = CommitLog.this.topicQueueTable.get(key);
-            if (null == queueOffset) {
-                queueOffset = 0L;
-                CommitLog.this.topicQueueTable.put(key, queueOffset);
-            }
+            long queueOffset = CommitLog.this.topicQueueTable.computeIfAbsent(key, k -> 0L);
 
             // Transaction messages that require special handling
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
@@ -1311,9 +1309,9 @@ public class CommitLog {
             // Determines whether there is sufficient free space
             if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
                 this.msgStoreItemMemory.clear();
-                // 1 TOTALSIZE
+                // 1 TOTAL SIZE
                 this.msgStoreItemMemory.putInt(maxBlank);
-                // 2 MAGICCODE
+                // 2 MAGIC CODE
                 this.msgStoreItemMemory.putInt(CommitLog.BLANK_MAGIC_CODE);
                 // 3 The remaining space may be any value
                 // Here the length of the specially set maxBlank
@@ -1346,9 +1344,6 @@ public class CommitLog {
                 msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
 
             switch (tranType) {
-                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                    break;
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
                     // The next update ConsumeQueue information
@@ -1360,18 +1355,15 @@ public class CommitLog {
             return result;
         }
 
+        @Override
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
-            final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
+                                            final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
             byteBuffer.mark();
             //physical offset
             long wroteOffset = fileFromOffset + byteBuffer.position();
             // Record ConsumeQueue information
             String key = putMessageContext.getTopicQueueTableKey();
-            Long queueOffset = CommitLog.this.topicQueueTable.get(key);
-            if (null == queueOffset) {
-                queueOffset = 0L;
-                CommitLog.this.topicQueueTable.put(key, queueOffset);
-            }
+            long queueOffset = CommitLog.this.topicQueueTable.computeIfAbsent(key, k -> 0L);
             long beginQueueOffset = queueOffset;
             int totalMsgLen = 0;
             int msgNum = 0;
