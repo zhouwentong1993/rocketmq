@@ -34,8 +34,9 @@ public class CountDownLatch2 {
      * @throws IllegalArgumentException if {@code count} is negative
      */
     public CountDownLatch2(int count) {
-        if (count < 0)
+        if (count < 0) {
             throw new IllegalArgumentException("count < 0");
+        }
         this.sync = new Sync(count);
     }
 
@@ -150,6 +151,7 @@ public class CountDownLatch2 {
      *
      * @return a string identifying this latch, as well as its state
      */
+    @Override
     public String toString() {
         return super.toString() + "[Count = " + sync.getCount() + "]";
     }
@@ -172,19 +174,23 @@ public class CountDownLatch2 {
             return getState();
         }
 
+        @Override
         protected int tryAcquireShared(int acquires) {
             return (getState() == 0) ? 1 : -1;
         }
 
+        @Override
         protected boolean tryReleaseShared(int releases) {
             // Decrement count; signal when transition to zero
             for (; ; ) {
                 int c = getState();
-                if (c == 0)
+                if (c == 0) {
                     return false;
+                }
                 int nextc = c - 1;
-                if (compareAndSetState(c, nextc))
+                if (compareAndSetState(c, nextc)) {
                     return nextc == 0;
+                }
             }
         }
 

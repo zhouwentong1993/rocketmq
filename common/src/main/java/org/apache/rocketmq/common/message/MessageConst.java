@@ -17,8 +17,12 @@
 package org.apache.rocketmq.common.message;
 
 import java.util.HashSet;
+import java.util.Set;
 
-public class MessageConst {
+public final class MessageConst {
+
+    private MessageConst(){}
+
     public static final String PROPERTY_KEYS = "KEYS";
     public static final String PROPERTY_TAGS = "TAGS";
     public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
@@ -55,7 +59,7 @@ public class MessageConst {
 
     public static final String KEY_SEPARATOR = " ";
 
-    public static final HashSet<String> STRING_HASH_SET = new HashSet<String>();
+    public static final Set<String> STRING_HASH_SET = new HashSet<>();
 
     static {
         STRING_HASH_SET.add(PROPERTY_TRACE_SWITCH);

@@ -16,27 +16,10 @@
  */
 package org.apache.rocketmq.store;
 
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
-
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageAccessor;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.*;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -45,6 +28,15 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
+
+import java.net.*;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -74,12 +66,15 @@ public class CommitLog {
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
-            defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
+                defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
         this.defaultMessageStore = defaultMessageStore;
 
+        // 根据刷盘方式来创建不同的 Service
         if (defaultMessageStore.getMessageStoreConfig().getFlushDiskType() == FlushDiskType.SYNC_FLUSH) {
+            // 同步刷盘
             this.flushCommitLogService = new GroupCommitService();
         } else {
+            // 异步刷盘
             this.flushCommitLogService = new FlushRealTimeService();
         }
 
@@ -132,10 +127,10 @@ public class CommitLog {
     }
 
     public int deleteExpiredFile(
-        final long expiredTime,
-        final int deleteFilesInterval,
-        final long intervalForcibly,
-        final boolean cleanImmediately
+            final long expiredTime,
+            final int deleteFilesInterval,
+            final long intervalForcibly,
+            final boolean cleanImmediately
     ) {
         return this.mappedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
     }
@@ -241,7 +236,7 @@ public class CommitLog {
      * @return 0 Come the end of the file // >0 Normal messages // -1 Message checksum failure
      */
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
-        final boolean readBody) {
+                                                     final boolean readBody) {
         try {
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
@@ -347,7 +342,7 @@ public class CommitLog {
 
                         if (delayLevel > 0) {
                             tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(delayLevel,
-                                storeTimestamp);
+                                    storeTimestamp);
                         }
                     }
                 }
@@ -361,24 +356,24 @@ public class CommitLog {
                 doNothingForDeadCode(byteBuffer1);
                 doNothingForDeadCode(byteBuffer2);
                 log.error(
-                    "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
-                    totalSize, readLength, bodyLen, topicLen, propertiesLength);
+                        "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
+                        totalSize, readLength, bodyLen, topicLen, propertiesLength);
                 return new DispatchRequest(totalSize, false/* success */);
             }
 
             return new DispatchRequest(
-                topic,
-                queueId,
-                physicOffset,
-                totalSize,
-                tagsCode,
-                storeTimestamp,
-                queueOffset,
-                keys,
-                uniqKey,
-                sysFlag,
-                preparedTransactionOffset,
-                propertiesMap
+                    topic,
+                    queueId,
+                    physicOffset,
+                    totalSize,
+                    tagsCode,
+                    storeTimestamp,
+                    queueOffset,
+                    keys,
+                    uniqKey,
+                    sysFlag,
+                    preparedTransactionOffset,
+                    propertiesMap
             );
         } catch (Exception e) {
         }
@@ -386,28 +381,28 @@ public class CommitLog {
         return new DispatchRequest(-1, false /* success */);
     }
 
+    // 计算 msg 大小
     protected static int calMsgLength(int sysFlag, int bodyLength, int topicLength, int propertiesLength) {
         int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
         int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
-        final int msgLen = 4 //TOTALSIZE
-            + 4 //MAGICCODE
-            + 4 //BODYCRC
-            + 4 //QUEUEID
-            + 4 //FLAG
-            + 8 //QUEUEOFFSET
-            + 8 //PHYSICALOFFSET
-            + 4 //SYSFLAG
-            + 8 //BORNTIMESTAMP
-            + bornhostLength //BORNHOST
-            + 8 //STORETIMESTAMP
-            + storehostAddressLength //STOREHOSTADDRESS
-            + 4 //RECONSUMETIMES
-            + 8 //Prepared Transaction Offset
-            + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
-            + 1 + topicLength //TOPIC
-            + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
-            + 0;
-        return msgLen;
+        return 4 //TOTALSIZE
+                + 4 //MAGICCODE
+                + 4 //BODYCRC
+                + 4 //QUEUEID
+                + 4 //FLAG
+                + 8 //QUEUEOFFSET
+                + 8 //PHYSICALOFFSET
+                + 4 //SYSFLAG
+                + 8 //BORNTIMESTAMP
+                + bornhostLength //BORNHOST
+                + 8 //STORETIMESTAMP
+                + storehostAddressLength //STOREHOSTADDRESS
+                + 4 //RECONSUMETIMES
+                + 8 //Prepared Transaction Offset
+                + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
+                + 1 + topicLength //TOPIC
+                + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
+                + 0;
     }
 
     public long getConfirmOffset() {
@@ -521,18 +516,18 @@ public class CommitLog {
         }
 
         if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
-            && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
+                && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
                 log.info("find check timestamp, {} {}",
-                    storeTimestamp,
-                    UtilAll.timeMillisToHumanString(storeTimestamp));
+                        storeTimestamp,
+                        UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         } else {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
                 log.info("find check timestamp, {} {}",
-                    storeTimestamp,
-                    UtilAll.timeMillisToHumanString(storeTimestamp));
+                        storeTimestamp,
+                        UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         }
@@ -619,6 +614,7 @@ public class CommitLog {
         long elapsedTimeInLock;
         MappedFile unlockMappedFile = null;
 
+        // 加锁，同一时间只能有一个线程对 commit log 加锁。
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
             // mmap 具体方位。 read
@@ -648,7 +644,7 @@ public class CommitLog {
                     unlockMappedFile = mappedFile;
                     // Create a new file, re-write the message
                     mappedFile = this.mappedFileQueue.getLastMappedFile(0);
-                    if (null == mappedFile) {
+                    if (mappedFile == null) {
                         // XXX: warn and notify me
                         log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                         beginTimeInLock = 0;
@@ -678,7 +674,7 @@ public class CommitLog {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
         }
 
-        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+        if (unlockMappedFile != null && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
             this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
 
@@ -688,6 +684,7 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
+        // 将数据刷盘
         CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
         CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
@@ -823,9 +820,10 @@ public class CommitLog {
 
     }
 
+    // 刷盘操作 read
     public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, MessageExt messageExt) {
         // Synchronization flush
-        if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
+        if (this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType() == FlushDiskType.SYNC_FLUSH) {
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
             if (messageExt.isWaitStoreMsgOK()) {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
@@ -841,7 +839,7 @@ public class CommitLog {
         else {
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
                 flushCommitLogService.wakeup();
-            } else  {
+            } else {
                 commitLogService.wakeup();
             }
             return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
@@ -858,8 +856,7 @@ public class CommitLog {
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
                     return request.future();
-                }
-                else {
+                } else {
                     return CompletableFuture.completedFuture(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
             }
@@ -996,7 +993,7 @@ public class CommitLog {
                 int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
 
                 int commitDataThoroughInterval =
-                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
+                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
 
                 long begin = System.currentTimeMillis();
                 if (begin >= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
@@ -1035,6 +1032,7 @@ public class CommitLog {
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
 
+        @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -1045,7 +1043,7 @@ public class CommitLog {
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 int flushPhysicQueueThoroughInterval =
-                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
+                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
                 boolean printFlushProgress = false;
 
@@ -1108,7 +1106,7 @@ public class CommitLog {
 
         @Override
         public long getJointime() {
-            return 1000 * 60 * 5;
+            return 1000 * 60 * 5L;
         }
     }
 
@@ -1198,6 +1196,7 @@ public class CommitLog {
             }
         }
 
+        @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -1266,6 +1265,7 @@ public class CommitLog {
             // STORE TIMESTAMP + STORE HOST ADDRESS + OFFSET <br>
 
             // PHY OFFSET
+            // 从哪里开始写？
             long wroteOffset = fileFromOffset + byteBuffer.position();
 
             Supplier<String> msgIdSupplier = () -> {
@@ -1280,9 +1280,11 @@ public class CommitLog {
             };
 
             // Record ConsumeQueue information
+            // {topic}-{queue} e.g. topicTest-3
             String key = putMessageContext.getTopicQueueTableKey();
             long queueOffset = CommitLog.this.topicQueueTable.computeIfAbsent(key, k -> 0L);
 
+            // 对事务消息的处理
             // Transaction messages that require special handling
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
@@ -1297,11 +1299,16 @@ public class CommitLog {
                 default:
                     break;
             }
+            // 需要弄懂 preEncodeBuffer 里面的内容是什么时候，放入的是什么
+            // update 弄懂了，存储结构在 MessageDecoder 类中。
+            // 在下面这行代码执行的时候，就把 msg 的详细信息写入到 encodedBuffer 里面了。
+            // PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
             final int msgLen = preEncodeBuffer.getInt(0);
 
             // Determines whether there is sufficient free space
+            // 超长了怎么处理
             if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
                 this.msgStoreItemMemory.clear();
                 // 1 TOTAL SIZE
@@ -1318,11 +1325,57 @@ public class CommitLog {
                         queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             }
 
+//            this.resetByteBuffer(encoderBuffer, msgLen);
+//            // 1 TOTAL SIZE
+//            this.encoderBuffer.putInt(msgLen);
+//            // 2 MAGIC CODE
+//            this.encoderBuffer.putInt(CommitLog.MESSAGE_MAGIC_CODE);
+//            // 3 BODY CRC
+//            this.encoderBuffer.putInt(msgInner.getBodyCRC());
+//            // 4 QUEUE ID
+//            this.encoderBuffer.putInt(msgInner.getQueueId());
+//            // 5 FLAG
+//            this.encoderBuffer.putInt(msgInner.getFlag());
+//            // 6 QUEUE OFFSET, need update later
+//            this.encoderBuffer.putLong(0);
+//            // 7 PHYSICAL OFFSET, need update later
+//            this.encoderBuffer.putLong(0);
+//            // 8 SYSFLAG
+//            this.encoderBuffer.putInt(msgInner.getSysFlag());
+//            // 9 BORN TIMESTAMP
+//            this.encoderBuffer.putLong(msgInner.getBornTimestamp());
+//            // 10 BORN HOST
+//            socketAddress2ByteBuffer(msgInner.getBornHost(), this.encoderBuffer);
+//            // 11 STORE TIMESTAMP
+//            this.encoderBuffer.putLong(msgInner.getStoreTimestamp());
+//            // 12 STORE HOST ADDRESS
+//            socketAddress2ByteBuffer(msgInner.getStoreHost(), this.encoderBuffer);
+//            // 13 RECONSUME TIMES
+//            this.encoderBuffer.putInt(msgInner.getReconsumeTimes());
+//            // 14 Prepared Transaction Offset
+//            this.encoderBuffer.putLong(msgInner.getPreparedTransactionOffset());
+//            // 15 BODY
+//            this.encoderBuffer.putInt(bodyLength);
+//            if (bodyLength > 0) {
+//                this.encoderBuffer.put(msgInner.getBody());
+//            }
+//            // 16 TOPIC
+//            this.encoderBuffer.put((byte) topicLength);
+//            this.encoderBuffer.put(topicData);
+//            // 17 PROPERTIES
+//            this.encoderBuffer.putShort((short) propertiesLength);
+//            if (propertiesLength > 0) {
+//                this.encoderBuffer.put(propertiesData);
+//            }
+//
+//            encoderBuffer.flip();
+
+            // total size + magic code + body crc + queue id + flag
             int pos = 4 + 4 + 4 + 4 + 4;
-            // 6 QUEUEOFFSET
+            // 6 QUEUE OFFSET
             preEncodeBuffer.putLong(pos, queueOffset);
             pos += 8;
-            // 7 PHYSICALOFFSET
+            // 7 PHYSICAL OFFSET
             preEncodeBuffer.putLong(pos, fileFromOffset + byteBuffer.position());
             int ipLen = (msgInner.getSysFlag() & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
             // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
@@ -1336,12 +1389,13 @@ public class CommitLog {
             byteBuffer.put(preEncodeBuffer);
             msgInner.setEncodedBuff(null);
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
-                msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                    msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
 
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
                     // The next update ConsumeQueue information
+                    // ConsumeQueue 信息变更。
                     CommitLog.this.topicQueueTable.put(key, ++queueOffset);
                     break;
                 default:
@@ -1399,7 +1453,7 @@ public class CommitLog {
                 // Exceeds the maximum message
                 if (msgLen > this.maxMessageSize) {
                     CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLen
-                        + ", maxMessageSize: " + this.maxMessageSize);
+                            + ", maxMessageSize: " + this.maxMessageSize);
                     return new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED);
                 }
                 totalMsgLen += msgLen;
@@ -1417,7 +1471,7 @@ public class CommitLog {
                     byteBuffer.reset(); //ignore the previous appended messages
                     byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
                     return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, maxBlank, msgIdSupplier, messageExtBatch.getStoreTimestamp(),
-                        beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                            beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
                 }
                 //move to add queue offset and commitlog offset
                 int pos = msgPos + 20;
@@ -1440,7 +1494,7 @@ public class CommitLog {
             byteBuffer.put(messagesByteBuff);
             messageExtBatch.setEncodedBuff(null);
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, totalMsgLen, msgIdSupplier,
-                messageExtBatch.getStoreTimestamp(), beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                    messageExtBatch.getStoreTimestamp(), beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             result.setMsgNum(msgNum);
             CommitLog.this.topicQueueTable.put(key, queueOffset);
 
@@ -1483,7 +1537,7 @@ public class CommitLog {
             final byte[] propertiesData =
                     msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
 
-            final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
+            final int propertiesLength = (propertiesData == null) ? 0 : propertiesData.length;
 
             if (propertiesLength > Short.MAX_VALUE) {
                 log.warn("putMessage message properties length too long. length={}", propertiesData.length);
@@ -1504,47 +1558,51 @@ public class CommitLog {
                 return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
             }
 
+            // 构建消息体。read
             // Initialization of storage space
+            // 每次都 reset byte buffer，以供重新使用。
             this.resetByteBuffer(encoderBuffer, msgLen);
-            // 1 TOTALSIZE
+            // 1 TOTAL SIZE
             this.encoderBuffer.putInt(msgLen);
-            // 2 MAGICCODE
+            // 2 MAGIC CODE
             this.encoderBuffer.putInt(CommitLog.MESSAGE_MAGIC_CODE);
-            // 3 BODYCRC
+            // 3 BODY CRC
             this.encoderBuffer.putInt(msgInner.getBodyCRC());
-            // 4 QUEUEID
+            // 4 QUEUE ID
             this.encoderBuffer.putInt(msgInner.getQueueId());
             // 5 FLAG
             this.encoderBuffer.putInt(msgInner.getFlag());
-            // 6 QUEUEOFFSET, need update later
+            // 6 QUEUE OFFSET, need update later
             this.encoderBuffer.putLong(0);
-            // 7 PHYSICALOFFSET, need update later
+            // 7 PHYSICAL OFFSET, need update later
             this.encoderBuffer.putLong(0);
             // 8 SYSFLAG
             this.encoderBuffer.putInt(msgInner.getSysFlag());
-            // 9 BORNTIMESTAMP
+            // 9 BORN TIMESTAMP
             this.encoderBuffer.putLong(msgInner.getBornTimestamp());
-            // 10 BORNHOST
-            socketAddress2ByteBuffer(msgInner.getBornHost() ,this.encoderBuffer);
-            // 11 STORETIMESTAMP
+            // 10 BORN HOST
+            socketAddress2ByteBuffer(msgInner.getBornHost(), this.encoderBuffer);
+            // 11 STORE TIMESTAMP
             this.encoderBuffer.putLong(msgInner.getStoreTimestamp());
-            // 12 STOREHOSTADDRESS
-            socketAddress2ByteBuffer(msgInner.getStoreHost() ,this.encoderBuffer);
-            // 13 RECONSUMETIMES
+            // 12 STORE HOST ADDRESS
+            socketAddress2ByteBuffer(msgInner.getStoreHost(), this.encoderBuffer);
+            // 13 RECONSUME TIMES
             this.encoderBuffer.putInt(msgInner.getReconsumeTimes());
             // 14 Prepared Transaction Offset
             this.encoderBuffer.putLong(msgInner.getPreparedTransactionOffset());
             // 15 BODY
             this.encoderBuffer.putInt(bodyLength);
-            if (bodyLength > 0)
+            if (bodyLength > 0) {
                 this.encoderBuffer.put(msgInner.getBody());
+            }
             // 16 TOPIC
             this.encoderBuffer.put((byte) topicLength);
             this.encoderBuffer.put(topicData);
             // 17 PROPERTIES
             this.encoderBuffer.putShort((short) propertiesLength);
-            if (propertiesLength > 0)
+            if (propertiesLength > 0) {
                 this.encoderBuffer.put(propertiesData);
+            }
 
             encoderBuffer.flip();
             return null;
@@ -1597,7 +1655,7 @@ public class CommitLog {
                 // Exceeds the maximum message
                 if (msgLen > this.maxMessageSize) {
                     CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLen
-                        + ", maxMessageSize: " + this.maxMessageSize);
+                            + ", maxMessageSize: " + this.maxMessageSize);
                     throw new RuntimeException("message size exceeded");
                 }
 
@@ -1669,6 +1727,7 @@ public class CommitLog {
     static class PutMessageThreadLocal {
         private MessageExtEncoder encoder;
         private StringBuilder keyBuilder;
+
         PutMessageThreadLocal(int size) {
             encoder = new MessageExtEncoder(size);
             keyBuilder = new StringBuilder();
