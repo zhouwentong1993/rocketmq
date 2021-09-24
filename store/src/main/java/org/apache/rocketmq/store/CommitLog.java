@@ -1110,6 +1110,8 @@ public class CommitLog {
         }
     }
 
+
+    // todo 需要缕清整个路径，是怎么通过 CountDownLatch 来控制的。
     public static class GroupCommitRequest {
         private final long nextOffset;
         private CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
