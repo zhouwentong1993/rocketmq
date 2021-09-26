@@ -125,24 +125,22 @@ public class BrokerStartup {
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
             }
 
-            if (commandLine.hasOption('c')) {
-                String file = commandLine.getOptionValue('c');
-                if (file != null) {
-                    configFile = file;
-                    InputStream in = new BufferedInputStream(new FileInputStream(file));
-                    properties = new Properties();
-                    properties.load(in);
+//            if (commandLine.hasOption('c')) {
+            String file = "/Users/finup123/IdeaProjects/rocketmq/distribution/conf/single-broker.properties";
+            configFile = file;
+            InputStream in = new BufferedInputStream(new FileInputStream(file));
+            properties = new Properties();
+            properties.load(in);
 
-                    properties2SystemEnv(properties);
-                    MixAll.properties2Object(properties, brokerConfig);
-                    MixAll.properties2Object(properties, nettyServerConfig);
-                    MixAll.properties2Object(properties, nettyClientConfig);
-                    MixAll.properties2Object(properties, messageStoreConfig);
+            properties2SystemEnv(properties);
+            MixAll.properties2Object(properties, brokerConfig);
+            MixAll.properties2Object(properties, nettyServerConfig);
+            MixAll.properties2Object(properties, nettyClientConfig);
+            MixAll.properties2Object(properties, messageStoreConfig);
 
-                    BrokerPathConfigHelper.setBrokerConfigPath(file);
-                    in.close();
-                }
-            }
+            BrokerPathConfigHelper.setBrokerConfigPath(file);
+            in.close();
+//            }
 
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
