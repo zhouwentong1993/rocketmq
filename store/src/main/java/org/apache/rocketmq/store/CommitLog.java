@@ -1149,6 +1149,7 @@ public class CommitLog {
     /**
      * GroupCommit Service
      */
+    // 同步刷盘实现 read
     class GroupCommitService extends FlushCommitLogService {
         private volatile LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<>();
         private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<>();
