@@ -55,11 +55,13 @@ public class MappedFile extends ReferenceResource {
     // 三个核心的指针。
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
+    // 操作系统有时候会自动 flush，怎么处理？
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
+
     protected int fileSize;
     protected FileChannel fileChannel;
     /**
-     * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
+     * Message will put to here first, and then re put to FileChannel if writeBuffer is not null.
      */
     protected ByteBuffer writeBuffer = null;
     protected TransientStorePool transientStorePool = null;
@@ -224,6 +226,7 @@ public class MappedFile extends ReferenceResource {
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
+            // 写了多少字节的数据
             this.wrotePosition.addAndGet(result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;

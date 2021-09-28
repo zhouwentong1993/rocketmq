@@ -324,7 +324,7 @@ public class ConsumeQueue {
     public boolean flush(final int flushLeastPages) {
         boolean result = this.mappedFileQueue.flush(flushLeastPages);
         if (isExtReadEnable()) {
-            result = result & this.consumeQueueExt.flush(flushLeastPages);
+            result = result && this.consumeQueueExt.flush(flushLeastPages);
         }
 
         return result;
