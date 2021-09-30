@@ -106,7 +106,7 @@ public class IndexService {
         }
 
         if (files != null) {
-            List<IndexFile> fileList = new ArrayList<IndexFile>();
+            List<IndexFile> fileList = new ArrayList<>();
             for (int i = 0; i < (files.length - 1); i++) {
                 IndexFile f = (IndexFile) files[i];
                 if (f.getEndPhyOffset() < offset) {
@@ -144,7 +144,7 @@ public class IndexService {
         try {
             this.readWriteLock.writeLock().lock();
             for (IndexFile f : this.indexFileList) {
-                f.destroy(1000 * 3);
+                f.destroy(1000 * 3L);
             }
             this.indexFileList.clear();
         } catch (Exception e) {
@@ -155,7 +155,7 @@ public class IndexService {
     }
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
-        List<Long> phyOffsets = new ArrayList<Long>(maxNum);
+        List<Long> phyOffsets = new ArrayList<>(maxNum);
 
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
@@ -202,25 +202,20 @@ public class IndexService {
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
             long endPhyOffset = indexFile.getEndPhyOffset();
-            DispatchRequest msg = req;
-            String topic = msg.getTopic();
-            String keys = msg.getKeys();
-            if (msg.getCommitLogOffset() < endPhyOffset) {
+            String topic = req.getTopic();
+            String keys = req.getKeys();
+            if (req.getCommitLogOffset() < endPhyOffset) {
                 return;
             }
 
-            final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
-            switch (tranType) {
-                case MessageSysFlag.TRANSACTION_NOT_TYPE:
-                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
-                    break;
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                    return;
+            final int tranType = MessageSysFlag.getTransactionValue(req.getSysFlag());
+
+            if (tranType == MessageSysFlag.TRANSACTION_ROLLBACK_TYPE) {
+                return;
             }
 
             if (req.getUniqKey() != null) {
-                indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
+                indexFile = putKey(indexFile, req, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
                     log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
                     return;
@@ -229,10 +224,9 @@ public class IndexService {
 
             if (keys != null && keys.length() > 0) {
                 String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
-                for (int i = 0; i < keyset.length; i++) {
-                    String key = keyset[i];
+                for (String key : keyset) {
                     if (key.length() > 0) {
-                        indexFile = putKey(indexFile, msg, buildKey(topic, key));
+                        indexFile = putKey(indexFile, req, buildKey(topic, key));
                         if (indexFile == null) {
                             log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
                             return;
@@ -268,10 +262,11 @@ public class IndexService {
     public IndexFile retryGetAndCreateIndexFile() {
         IndexFile indexFile = null;
 
-        for (int times = 0; null == indexFile && times < MAX_TRY_IDX_CREATE; times++) {
+        for (int times = 0; times < MAX_TRY_IDX_CREATE; times++) {
             indexFile = this.getAndCreateLastIndexFile();
-            if (null != indexFile)
+            if (indexFile != null) {
                 break;
+            }
 
             try {
                 log.info("Tried to create index file " + times + " times");
@@ -281,7 +276,7 @@ public class IndexService {
             }
         }
 
-        if (null == indexFile) {
+        if (indexFile == null) {
             this.defaultMessageStore.getAccessRights().makeIndexFileError();
             log.error("Mark index file cannot build flag");
         }

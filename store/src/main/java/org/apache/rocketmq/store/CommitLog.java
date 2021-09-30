@@ -239,6 +239,9 @@ public class CommitLog {
      *
      * @return 0 Come the end of the file // >0 Normal messages // -1 Message checksum failure
      */
+    // commit log 文件结构 todo
+    // fixme 为什么这里能通过 byteBuffer 获取到 total size 这些数据。这些数据是写在哪里的？是在每一条消息头上还是整体的头上。
+    // 这里拿的是全部 message，按照 position 获取是没有问题的。如果是一条，则是封装了一条的 DispatchRequest。如果是多条，也是取头一条的 DispatchRequest。
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
                                                      final boolean readBody) {
         try {
@@ -380,9 +383,8 @@ public class CommitLog {
                     propertiesMap
             );
         } catch (Exception e) {
+            return new DispatchRequest(-1, false /* success */);
         }
-
-        return new DispatchRequest(-1, false /* success */);
     }
 
     // 计算 msg 大小
