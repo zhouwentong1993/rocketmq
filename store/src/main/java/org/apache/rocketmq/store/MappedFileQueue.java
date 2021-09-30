@@ -26,6 +26,9 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+// MappedFileQueue 是 MappedFile 的集合，每次系统启动时，会扫描指定目录。
+// 比如 ~/store/commitlog 目录，将里面的每一个文件都用 Mmap 读入。
+// 将 MappedFile 加入该队列，相当于整体维护了所有的 MapedFile
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
@@ -243,6 +246,7 @@ public class MappedFileQueue {
         while (!this.mappedFiles.isEmpty()) {
             try {
                 // 获取最后一个？
+                // update 2021年09月29日16:06:17。是啊，相当于拿磁盘文件中的 commit log 中最后面的一个。这个是要写入的。
                 mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
                 break;
             } catch (IndexOutOfBoundsException e) {
@@ -459,6 +463,7 @@ public class MappedFileQueue {
      * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
      */
+    // 找到 offset 在哪一个文件上，fileFromOffset < offset < fileFromOffset + fileSize.
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
             MappedFile firstMappedFile = this.getFirstMappedFile();
@@ -472,6 +477,7 @@ public class MappedFileQueue {
                             this.mappedFileSize,
                             this.mappedFiles.size());
                 } else {
+                    // 获取要拿哪一个 MappedFile。假设 offset 是 1000，则：(1000 / 1024*1024*1024) - (0 / 1024*1024*1024) -> 此时就是 index = 0
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {
@@ -479,6 +485,7 @@ public class MappedFileQueue {
                     } catch (Exception ignored) {
                     }
 
+                    // 为什么校验了两遍？这个 if 是为了校验 targetFile != null 的吧。
                     if (targetFile != null && offset >= targetFile.getFileFromOffset()
                             && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
                         return targetFile;

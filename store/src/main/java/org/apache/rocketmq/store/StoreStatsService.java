@@ -95,8 +95,9 @@ public class StoreStatsService extends ServiceThread {
     public void setPutMessageEntireTimeMax(long value) {
         final AtomicLong[] times = this.putMessageDistributeTime;
 
-        if (null == times)
+        if (times == null) {
             return;
+        }
 
         // us
         if (value <= 0) {

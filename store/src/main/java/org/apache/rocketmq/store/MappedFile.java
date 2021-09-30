@@ -416,6 +416,8 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
+    // 这个函数最终返回了从 pos 到 readPosition 的所有数据的 ByteBuffer。
+    // 通过两次 slice 操作，不断调整 position。
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {
@@ -425,6 +427,7 @@ public class MappedFile extends ReferenceResource {
                 int size = readPosition - pos;
                 ByteBuffer byteBufferNew = byteBuffer.slice();
                 byteBufferNew.limit(size);
+                // 从 fileFromOffset + pos 开始，总共 size 长度的 ByteBuffer
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             }
         }
