@@ -1888,7 +1888,7 @@ public class DefaultMessageStore implements MessageStore {
 
         // 将 commit log
         private void doReput() {
-            // 如果长时间没有同步，就从 commit log 的头上同步
+            // 如果长时间没有同步，就从 commit log 的开始处同步
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 log.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
                         this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
@@ -1917,9 +1917,10 @@ public class DefaultMessageStore implements MessageStore {
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
+                                    // 将消息体分发给 consume queue 消费者和 index file 消费者。
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
-                                    if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
+                                    if (DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE
                                             && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
                                             && DefaultMessageStore.this.messageArrivingListener != null) {
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
