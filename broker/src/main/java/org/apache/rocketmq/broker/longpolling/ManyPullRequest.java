@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.longpolling;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ManyPullRequest {
@@ -37,6 +38,6 @@ public class ManyPullRequest {
             return result;
         }
 
-        return null;
+        return Collections.emptyList();
     }
 }
