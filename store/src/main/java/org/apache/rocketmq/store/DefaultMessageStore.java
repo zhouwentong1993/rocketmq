@@ -1975,7 +1975,7 @@ public class DefaultMessageStore implements MessageStore {
 
             while (!this.isStopped()) {
                 try {
-                    // 每搁 1ms 去 commit log 拉取一次数据
+                    // 每隔 1ms 去 commit log 拉取一次数据
                     Thread.sleep(1);
                     this.doReput();
                 } catch (Exception e) {
