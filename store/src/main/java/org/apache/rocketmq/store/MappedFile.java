@@ -58,6 +58,7 @@ public class MappedFile extends ReferenceResource {
     // 操作系统有时候会自动 flush，怎么处理？
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
 
+    // 映射的文件大小
     protected int fileSize;
     protected FileChannel fileChannel;
     /**
@@ -66,6 +67,7 @@ public class MappedFile extends ReferenceResource {
     protected ByteBuffer writeBuffer = null;
     protected TransientStorePool transientStorePool = null;
     private String fileName;
+    // 这个变量是在 broker 启动时就初始化的，其实就是 CommitLog/ConsumeQueue/IndexFile 的文件名，比如 00000000，就代表文件是从 0 开始的。
     private long fileFromOffset;
     private File file;
     private MappedByteBuffer mappedByteBuffer;
@@ -209,6 +211,7 @@ public class MappedFile extends ReferenceResource {
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb,
                                                    PutMessageContext putMessageContext) {
 
+        // 当前写入的位置
         int currentPos = this.wrotePosition.get();
 
         // 可写状态

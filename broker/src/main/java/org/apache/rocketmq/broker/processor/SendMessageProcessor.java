@@ -52,6 +52,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RemotingResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
@@ -83,24 +84,25 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         asyncProcessRequest(ctx, request).thenAcceptAsync(responseCallback::callback, this.brokerController.getSendMessageExecutor());
     }
 
+
+    // source 处理请求开始，broker 处理入口。
     public CompletableFuture<RemotingCommand> asyncProcessRequest(ChannelHandlerContext ctx,
                                                                   RemotingCommand request) throws RemotingCommandException {
         final SendMessageContext mqtraceContext;
-        switch (request.getCode()) {
-            case RequestCode.CONSUMER_SEND_MSG_BACK:
-                return this.asyncConsumerSendMsgBack(ctx, request);
-            default:
-                SendMessageRequestHeader requestHeader = parseRequestHeader(request);
-                if (requestHeader == null) {
-                    return CompletableFuture.completedFuture(null);
-                }
-                mqtraceContext = buildMsgContext(ctx, requestHeader);
-                this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
-                if (requestHeader.isBatch()) {
-                    return this.asyncSendBatchMessage(ctx, request, mqtraceContext, requestHeader);
-                } else {
-                    return this.asyncSendMessage(ctx, request, mqtraceContext, requestHeader);
-                }
+        if (request.getCode() == RequestCode.CONSUMER_SEND_MSG_BACK) {
+            return this.asyncConsumerSendMsgBack(ctx, request);
+        } else {
+            SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+            if (requestHeader == null) {
+                return CompletableFuture.completedFuture(null);
+            }
+            mqtraceContext = buildMsgContext(ctx, requestHeader);
+            this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+            if (requestHeader.isBatch()) {
+                return this.asyncSendBatchMessage(ctx, request, mqtraceContext, requestHeader);
+            } else {
+                return this.asyncSendMessage(ctx, request, mqtraceContext, requestHeader);
+            }
         }
     }
 
@@ -264,6 +266,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         final byte[] body = request.getBody();
 
+        // 获取队列名，如果没有，自动生成一个队列名。
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
@@ -275,6 +278,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setTopic(requestHeader.getTopic());
         msgInner.setQueueId(queueIdInt);
 
+        // 对 DelayQueue 的处理
         if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {
             return CompletableFuture.completedFuture(response);
         }
@@ -300,9 +304,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         }
 
-        CompletableFuture<PutMessageResult> putMessageResult = null;
+        CompletableFuture<PutMessageResult> putMessageResult;
         String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        if (transFlag != null && Boolean.parseBoolean(transFlag)) {
+        if (Boolean.parseBoolean(transFlag)) {
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
@@ -676,16 +680,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final long startTimestamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
 
         if (this.brokerController.getMessageStore().now() < startTimestamp) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(RemotingSysResponseCode.SYSTEM_ERROR);
             response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimestamp)));
             return response;
         }
 
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
-        if (response.getCode() != -1) {
-            return response;
-        }
 
         return response;
     }
