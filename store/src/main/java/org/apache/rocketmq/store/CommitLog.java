@@ -697,6 +697,7 @@ public class CommitLog {
         CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
         // 主从复制操作
         CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
+        // 主从复制和数据刷盘同时触发。
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(flushStatus);
@@ -841,6 +842,7 @@ public class CommitLog {
                 service.putRequest(request);
                 return request.future();
             } else {
+                // 那其实这个实现与异步刷新实现并无区别，只是这个刷新的频率更快（10ms v.s. 500ms）每隔 10ms 进行 1 次 flush(0) 操作。
                 service.wakeup();
                 return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
             }
@@ -857,7 +859,7 @@ public class CommitLog {
     }
 
 
-    // 提交复制请求
+    // 提交复制请求，以后再分析。
     public CompletableFuture<PutMessageStatus> submitReplicaRequest(AppendMessageResult result, MessageExt messageExt) {
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
@@ -1052,7 +1054,7 @@ public class CommitLog {
             while (!this.isStopped()) {
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
 
-                // 每隔多长时间 flush 一次。
+                // 每隔多长时间 flush 一次。默认 500ms
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
                 // 每次至少刷新多少物理 page
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
@@ -1196,6 +1198,7 @@ public class CommitLog {
                 for (GroupCommitRequest req : this.requestsRead) {
                     // There may be a message in the next file, so a maximum of
                     // two times the flush
+                    // 如果是 true，代表已经 flush 过了；如果是 false，执行下面的逻辑进行 flush(0) 操作。
                     boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
                     // 重试两次。
                     for (int i = 0; i < 2 && !flushOK; i++) {
@@ -1211,6 +1214,8 @@ public class CommitLog {
                     CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
                 }
 
+                // 清空待 flush 目录。
+                // 即使在经过两次重试之后仍然没有刷新成功，清空该目录也不会有问题，因为后续还是会进行 flush(0) 操作的。
                 this.requestsRead = new LinkedList<>();
             } else {
                 // Because of individual messages is set to not sync flush, it
@@ -1226,6 +1231,7 @@ public class CommitLog {
             while (!this.isStopped()) {
                 try {
                     this.waitForRunning(10);
+                    // 每隔 10ms 同步一次。
                     this.doCommit();
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);

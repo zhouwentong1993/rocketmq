@@ -125,7 +125,7 @@ public class BrokerStartup {
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
             }
 
-            if (commandLine.hasOption('c')) {
+//            if (commandLine.hasOption('c')) {
                 String file = "/Users/finup123/IdeaProjects/rocketmq/distribution/conf/single-broker.properties";
                 configFile = file;
                 InputStream in = new BufferedInputStream(new FileInputStream(file));
@@ -140,7 +140,7 @@ public class BrokerStartup {
 
                 BrokerPathConfigHelper.setBrokerConfigPath(file);
                 in.close();
-            }
+//            }
 
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
