@@ -408,7 +408,7 @@ public class DefaultMessageStore implements MessageStore {
         return PutMessageStatus.PUT_OK;
     }
 
-    // 异步处理消息。
+    // source 异步处理消息。
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
         // 对 store check
@@ -425,14 +425,18 @@ public class DefaultMessageStore implements MessageStore {
 
         // ??? 这种有意义吗？
         long beginTime = this.getSystemClock().now();
+        // 将消息存储入 commitlog
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
 
+        // 利用上一个的返回值操作。
         putResultFuture.thenAccept(result -> {
+            // 存储用了多久
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
             }
 
+            // 记录响应数据
             this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
             // 记录失败次数
@@ -475,6 +479,7 @@ public class DefaultMessageStore implements MessageStore {
         return resultFuture;
     }
 
+    // source 具体存储消息入口
     @Override
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         try {
@@ -1975,7 +1980,7 @@ public class DefaultMessageStore implements MessageStore {
 
             while (!this.isStopped()) {
                 try {
-                    // 每搁 1ms 去 commit log 拉取一次数据
+                    // 每隔 1ms 去 commit log 拉取一次数据
                     Thread.sleep(1);
                     this.doReput();
                 } catch (Exception e) {

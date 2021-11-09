@@ -281,23 +281,26 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         }
     }
 
+    // source 发送消息入口
     protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
         throws RemotingCommandException {
 
-        SendMessageRequestHeaderV2 requestHeaderV2 = null;
+        SendMessageRequestHeaderV2 requestHeaderV2;
         SendMessageRequestHeader requestHeader = null;
+        // 这代码风格真操蛋。兼容不是这么兼容的，case 一定要有 break。
+        // update by 周文童
         switch (request.getCode()) {
             case RequestCode.SEND_BATCH_MESSAGE:
             case RequestCode.SEND_MESSAGE_V2:
+                // convert requestHeaderV2 to requestHeader
                 requestHeaderV2 = decodeSendMessageHeaderV2(request);
+                requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
+                break;
             case RequestCode.SEND_MESSAGE:
-                if (null == requestHeaderV2) {
-                    requestHeader =
-                        (SendMessageRequestHeader) request
-                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
-                } else {
-                    requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
-                }
+                requestHeader =
+                    (SendMessageRequestHeader) request
+                        .decodeCommandCustomHeader(SendMessageRequestHeader.class);
+                break;
             default:
                 break;
         }

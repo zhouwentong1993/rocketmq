@@ -445,7 +445,7 @@ public class MessageDecoder {
     }
 
     public static Map<String, String> string2messageProperties(final String properties) {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         if (properties != null) {
             int len = properties.length();
             int index = 0;

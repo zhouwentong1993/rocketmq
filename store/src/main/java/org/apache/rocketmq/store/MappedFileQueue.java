@@ -28,7 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 // MappedFileQueue 是 MappedFile 的集合，每次系统启动时，会扫描指定目录。
 // 比如 ~/store/commitlog 目录，将里面的每一个文件都用 Mmap 读入。
-// 将 MappedFile 加入该队列，相当于整体维护了所有的 MapedFile
+// 将 MappedFile 加入该队列，相当于整体维护了所有的 MappedFile
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
@@ -426,16 +426,19 @@ public class MappedFileQueue {
         return deleteCount;
     }
 
+    // 触发 flush 操作
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
+        // 找到指定 offset 对应的 MappedFile。举例来说，系统运行了很长时间，我现在要刷新对应 9.5G 文件处的 offset，此时返回的就是 9-10G 文件的对象。
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
+            // 判断 flush 结果。如果不够 4k，flush 不会触发，仍然返回上次的位置；如果强制 flush，也就是传入 0，那么就会返回 flush 之后的位置了。
             int offset = mappedFile.flush(flushLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
             result = where == this.flushedWhere;
             this.flushedWhere = where;
-            if (0 == flushLeastPages) {
+            if (flushLeastPages == 0) {
                 this.storeTimestamp = tmpTimeStamp;
             }
         }
