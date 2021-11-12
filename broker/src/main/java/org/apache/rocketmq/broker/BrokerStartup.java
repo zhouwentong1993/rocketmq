@@ -57,7 +57,7 @@ public class BrokerStartup {
     public static InternalLogger log;
 
     public static void main(String[] args) {
-        setEnv("ROCKETMQ_HOME","/Users/finup123/IdeaProjects/rocketmq/distribution/target/rocketmq-4.9.2-SNAPSHOT/rocketmq-4.9.2-SNAPSHOT");
+        setEnv("ROCKETMQ_HOME","/Users/zhouwentong/IdeaProjects/rocketmq/distribution/target/rocketmq-4.9.2-SNAPSHOT/rocketmq-4.9.2-SNAPSHOT");
         start(createBrokerController(args));
     }
 
@@ -126,7 +126,7 @@ public class BrokerStartup {
             }
 
 //            if (commandLine.hasOption('c')) {
-                String file = "/Users/finup123/IdeaProjects/rocketmq/distribution/conf/single-broker.properties";
+                String file = "/Users/zhouwentong/IdeaProjects/rocketmq/distribution/conf/single-broker.properties";
                 configFile = file;
                 InputStream in = new BufferedInputStream(new FileInputStream(file));
                 properties = new Properties();

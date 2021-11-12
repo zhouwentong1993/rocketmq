@@ -56,6 +56,8 @@ public class MappedFile extends ReferenceResource {
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
     // 操作系统有时候会自动 flush，怎么处理？
+    // update 2021年11月12日17:22:46。Linux 默认每 5s flush 一次。可能会导致主动 flush 操作的 page 空间不足。
+    // 但 RocketMQ 每隔 10s 会进行一次全局 flush 操作。
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
 
     // 映射的文件大小

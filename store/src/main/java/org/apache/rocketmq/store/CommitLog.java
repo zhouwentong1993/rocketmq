@@ -645,6 +645,7 @@ public class CommitLog {
 
             // append message
             // write message to buffer
+            // 将消息写入 buffer
             result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
             switch (result.getStatus()) {
                 case PUT_OK:
@@ -836,6 +837,7 @@ public class CommitLog {
         // Synchronization flush
         if (this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType() == FlushDiskType.SYNC_FLUSH) {
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
+            // 是否需要等到消息实际落地到磁盘才算是提交成功。
             if (messageExt.isWaitStoreMsgOK()) {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
                         this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
@@ -989,6 +991,9 @@ public class CommitLog {
         protected static final int RETRY_TIMES_OVER = 10;
     }
 
+    /*
+        暂存池启用后，该类生效
+     */
     class CommitRealTimeService extends FlushCommitLogService {
 
         private long lastCommitTimestamp = 0;
@@ -1347,6 +1352,7 @@ public class CommitLog {
                 // 3 The remaining space may be any value
                 // Here the length of the specially set maxBlank
                 final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
+                // 在这里其实相当于写入数据了，如果是 mmap 的话，此时数据已经在 page cache 中了。
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset,
                         maxBlank, /* only wrote 8 bytes, but declare wrote maxBlank for compute write position */
