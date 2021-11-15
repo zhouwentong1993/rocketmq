@@ -44,6 +44,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 // 文件映射
+/*
+控制三种文件（CommitLog、ConsumeQueue 和 IndexFile）
+标识两种文件操作方式
+记录三个指针
+*/
 public class MappedFile extends ReferenceResource {
     // 操作系统 page cache 4kb
     public static final int OS_PAGE_SIZE = 1024 * 4;
@@ -155,6 +160,7 @@ public class MappedFile extends ReferenceResource {
     public void init(final String fileName, final int fileSize,
                      final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
+        // 从暂存池里面借一个 buffer 过来，这里就是堆外内存。
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
     }

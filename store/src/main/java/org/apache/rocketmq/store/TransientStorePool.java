@@ -29,6 +29,9 @@ import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+/**
+ * 暂存池设计，初始化多个堆外内存的 ByteBuffer，供写入。
+ */
 public class TransientStorePool {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 

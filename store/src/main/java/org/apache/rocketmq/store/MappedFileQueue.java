@@ -27,7 +27,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 // MappedFileQueue 是 MappedFile 的集合，每次系统启动时，会扫描指定目录。
-// 比如 ~/store/commitlog 目录，将里面的每一个文件都用 Mmap 读入。
+// 比如 ~/store/commitlog 目录，将里面的每一个文件都用 mmap 读入。
 // 将 MappedFile 加入该队列，相当于整体维护了所有的 MappedFile
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
