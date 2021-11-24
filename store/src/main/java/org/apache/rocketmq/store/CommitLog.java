@@ -1187,6 +1187,9 @@ public class CommitLog {
             this.wakeup();
         }
 
+        /**
+         * 交换
+         */
         private void swapRequests() {
             lock.lock();
             try {
