@@ -152,8 +152,7 @@ public class RemotingUtil {
         int split = addr.lastIndexOf(":");
         String host = addr.substring(0, split);
         String port = addr.substring(split + 1);
-        InetSocketAddress isa = new InetSocketAddress(host, Integer.parseInt(port));
-        return isa;
+        return new InetSocketAddress(host, Integer.parseInt(port));
     }
 
     public static String socketAddress2String(final SocketAddress addr) {
@@ -182,6 +181,7 @@ public class RemotingUtil {
         return connect(remote, 1000 * 5);
     }
 
+    // 与服务端建立链接。
     public static SocketChannel connect(SocketAddress remote, final int timeoutMillis) {
         SocketChannel sc = null;
         try {

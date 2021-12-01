@@ -28,7 +28,7 @@ public class WaitNotifyObject {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     protected final ConcurrentHashMap<Long/* thread id */, AtomicBoolean/* notified */> waitingThreadTable =
-        new ConcurrentHashMap<Long, AtomicBoolean>(16);
+        new ConcurrentHashMap<>(16);
 
     protected AtomicBoolean hasNotified = new AtomicBoolean(false);
 
@@ -36,7 +36,7 @@ public class WaitNotifyObject {
         boolean needNotify = hasNotified.compareAndSet(false, true);
         if (needNotify) {
             synchronized (this) {
-                this.notify();
+                this.notifyAll();
             }
         }
     }

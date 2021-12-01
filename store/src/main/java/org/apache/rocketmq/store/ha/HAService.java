@@ -41,6 +41,9 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.PutMessageSpinLock;
 import org.apache.rocketmq.store.PutMessageStatus;
 
+/**
+ * 高可用实现。
+ */
 public class HAService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -107,8 +110,10 @@ public class HAService {
     // }
 
     public void start() throws Exception {
+        // 与从结点建立链接
         this.acceptSocketService.beginAccept();
         this.acceptSocketService.start();
+        // 推送数据用的
         this.groupTransferService.start();
         this.haClient.start();
     }
@@ -171,6 +176,7 @@ public class HAService {
          *
          * @throws Exception If fails.
          */
+        // 标准的 NIO 启动。
         public void beginAccept() throws Exception {
             this.serverSocketChannel = ServerSocketChannel.open();
             this.selector = RemotingUtil.openSelector();
@@ -211,13 +217,16 @@ public class HAService {
                             if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
                                 SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
 
+                                // 创建链接
                                 if (sc != null) {
                                     HAService.log.info("HAService receive new connection, "
                                         + sc.socket().getRemoteSocketAddress());
 
                                     try {
                                         HAConnection conn = new HAConnection(HAService.this, sc);
+                                        // 启动读写线程。
                                         conn.start();
+                                        // 维护链接
                                         HAService.this.addConnection(conn);
                                     } catch (Exception e) {
                                         log.error("new HAConnection exception", e);
@@ -289,6 +298,7 @@ public class HAService {
                     boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                     long waitUntilWhen = HAService.this.defaultMessageStore.getSystemClock().now()
                             + HAService.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout();
+                    // 重试直到超时
                     while (!transferOK && HAService.this.defaultMessageStore.getSystemClock().now() < waitUntilWhen) {
                         this.notifyTransferObject.waitForRunning(1000);
                         transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
@@ -331,6 +341,7 @@ public class HAService {
         }
     }
 
+    // 从服务器的实现。
     class HAClient extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
         private final AtomicReference<String> masterAddress = new AtomicReference<>();
@@ -359,10 +370,10 @@ public class HAService {
         private boolean isTimeToReportOffset() {
             long interval =
                 HAService.this.defaultMessageStore.getSystemClock().now() - this.lastWriteTimestamp;
-            boolean needHeart = interval > HAService.this.defaultMessageStore.getMessageStoreConfig()
-                .getHaSendHeartbeatInterval();
 
-            return needHeart;
+            // 5s
+            return interval > HAService.this.defaultMessageStore.getMessageStoreConfig()
+                .getHaSendHeartbeatInterval();
         }
 
         private boolean reportSlaveMaxOffset(final long maxOffset) {
@@ -374,6 +385,7 @@ public class HAService {
 
             for (int i = 0; i < 3 && this.reportOffset.hasRemaining(); i++) {
                 try {
+                    // NIO 的 write 不一定一下子写完，所以要通过循环写。
                     this.socketChannel.write(this.reportOffset);
                 } catch (IOException e) {
                     log.error(this.getServiceName()
@@ -383,6 +395,7 @@ public class HAService {
             }
 
             lastWriteTimestamp = HAService.this.defaultMessageStore.getSystemClock().now();
+            // 判断是否写完了。
             return !this.reportOffset.hasRemaining();
         }
 
@@ -499,20 +512,20 @@ public class HAService {
             return result;
         }
 
+        // 与 Master 建立链接。
         private boolean connectMaster() throws ClosedChannelException {
             if (null == socketChannel) {
                 String addr = this.masterAddress.get();
                 if (addr != null) {
-
                     SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
-                    if (socketAddress != null) {
-                        this.socketChannel = RemotingUtil.connect(socketAddress);
-                        if (this.socketChannel != null) {
-                            this.socketChannel.register(this.selector, SelectionKey.OP_READ);
-                        }
+                    this.socketChannel = RemotingUtil.connect(socketAddress);
+                    if (this.socketChannel != null) {
+                        // 注册读事件。
+                        this.socketChannel.register(this.selector, SelectionKey.OP_READ);
                     }
                 }
 
+                // 初始化的 offset
                 this.currentReportedOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
 
                 this.lastWriteTimestamp = System.currentTimeMillis();
@@ -556,13 +569,17 @@ public class HAService {
                 try {
                     if (this.connectMaster()) {
 
+                        // 距离上次汇报超过 5s
                         if (this.isTimeToReportOffset()) {
+                            // 对于从服务器来说，向主服务器汇报了待拉取的数据结点，也判断了与主服务器的连接情况。
+                            // 对于主服务器来说，得到了从服务器的心跳。这是典型的设计。
                             boolean result = this.reportSlaveMaxOffset(this.currentReportedOffset);
                             if (!result) {
                                 this.closeMaster();
                             }
                         }
 
+                        // 等 1s 事件。
                         this.selector.select(1000);
 
                         boolean ok = this.processReadEvent();
