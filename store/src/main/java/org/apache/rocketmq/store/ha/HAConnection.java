@@ -156,6 +156,7 @@ public class HAConnection {
 
             while (this.byteBufferRead.hasRemaining()) {
                 try {
+                    // 为什么能直接读，或者说不需要注册事件吗
                     int readSize = this.socketChannel.read(this.byteBufferRead);
                     if (readSize > 0) {
                         readSizeZeroTimes = 0;

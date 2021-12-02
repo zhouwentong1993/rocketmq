@@ -54,13 +54,22 @@ public class RouteInfoManager {
     private static final long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2L;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     // topic -> Queue 的映射关系
-    private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
     // broker 映射关系
-    private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     // 不明确 cluster 是指什么？？ fix -> 2021年09月13日11:56:08。cluster 是指 broker 集群，这里就是存储的 broker cluster 是由哪些 broker 组成的。
+
+
+    // broker 集群与 brokers 的映射关系（主从结点）
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
-    // broker -> 存活的 broker
+    // broker 自身数据
+    private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    // Topic 和 Queue 映射关系
+    private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    // 存活的 broker
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+
+
+
+    // broker -> 存活的 broker
     // broker -> 排除的 broker
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
