@@ -148,6 +148,7 @@ public class HAConnection {
             return ReadSocketService.class.getSimpleName();
         }
 
+        // 读事件代表 slave 向 master 请求数据
         private boolean processReadEvent() {
             int readSizeZeroTimes = 0;
 
@@ -195,6 +196,7 @@ public class HAConnection {
         }
     }
 
+    // master 向 slave 写数据的线程
     class WriteSocketService extends ServiceThread {
         private final Selector selector;
         private final SocketChannel socketChannel;
@@ -226,6 +228,7 @@ public class HAConnection {
                         continue;
                     }
 
+                    // slave 刚挂上，全量
                     if (-1 == this.nextTransferFromWhere) {
                         if (0 == HAConnection.this.slaveRequestOffset) {
                             long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMaxOffset();
@@ -287,15 +290,17 @@ public class HAConnection {
                         this.selectMappedBufferResult = selectResult;
 
                         // Build Header
+                        // 传输数据的描述信息。
                         this.byteBufferHeader.position(0);
                         this.byteBufferHeader.limit(headerSize);
                         this.byteBufferHeader.putLong(thisOffset);
                         this.byteBufferHeader.putInt(size);
                         this.byteBufferHeader.flip();
 
+                        // 将 header 数据和 commitlog 的数据全部发送过去。
                         this.lastWriteOver = this.transferData();
                     } else {
-
+                        // 没数据就再待会儿，100ms
                         HAConnection.this.haService.getWaitNotifyObject().allWaitForRunning(100);
                     }
                 } catch (Exception e) {

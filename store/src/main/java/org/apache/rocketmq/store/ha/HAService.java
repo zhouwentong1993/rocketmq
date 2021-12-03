@@ -294,6 +294,7 @@ public class HAService {
 
         private void doWaitTransfer() {
             if (!this.requestsRead.isEmpty()) {
+                // 这做什么了？只是做了 wakeup 的工作吗
                 for (CommitLog.GroupCommitRequest req : this.requestsRead) {
                     boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                     long waitUntilWhen = HAService.this.defaultMessageStore.getSystemClock().now()
