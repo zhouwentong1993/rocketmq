@@ -176,7 +176,7 @@ public class HAService {
          *
          * @throws Exception If fails.
          */
-        // 标准的 NIO 启动。
+        // 标准的 NIO 启动。服务端启动。
         public void beginAccept() throws Exception {
             this.serverSocketChannel = ServerSocketChannel.open();
             this.selector = RemotingUtil.openSelector();

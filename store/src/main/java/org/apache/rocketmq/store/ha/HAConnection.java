@@ -83,6 +83,7 @@ public class HAConnection {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024;
         private final Selector selector;
         private final SocketChannel socketChannel;
+        // 每次 1M 的数据
         private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
         private int processPosition = 0;
         private volatile long lastReadTimestamp = System.currentTimeMillis();
@@ -90,6 +91,7 @@ public class HAConnection {
         public ReadSocketService(final SocketChannel socketChannel) throws IOException {
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
+            // 在这里注册的事件。
             this.socketChannel.register(this.selector, SelectionKey.OP_READ);
             this.setDaemon(true);
         }
@@ -157,6 +159,7 @@ public class HAConnection {
             while (this.byteBufferRead.hasRemaining()) {
                 try {
                     // 为什么能直接读，或者说不需要注册事件吗
+                    // update 2021年12月03日11:30:18。前面构造函数里面指定了，注册了读事件。
                     int readSize = this.socketChannel.read(this.byteBufferRead);
                     if (readSize > 0) {
                         readSizeZeroTimes = 0;
