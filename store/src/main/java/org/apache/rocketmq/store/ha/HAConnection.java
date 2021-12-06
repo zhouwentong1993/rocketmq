@@ -166,6 +166,7 @@ public class HAConnection {
                         readSizeZeroTimes = 0;
                         this.lastReadTimestamp = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now();
                         if ((this.byteBufferRead.position() - this.processPosition) >= 8) {
+                            // 这是为了防止当前 byteBufferRead 没有读完传入的数据，或者 byteBufferRead 满了。
                             int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8);
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             this.processPosition = pos;
@@ -176,6 +177,7 @@ public class HAConnection {
                                 log.info("slave[" + HAConnection.this.clientAddr + "] request offset " + readOffset);
                             }
 
+                            // 通知主节点复制等待的请求，当前数据在从节点上已经复制完成了。
                             HAConnection.this.haService.notifyTransferSome(HAConnection.this.slaveAckOffset);
                         }
                     } else if (readSize == 0) {
@@ -228,8 +230,8 @@ public class HAConnection {
                         continue;
                     }
 
-                    // slave 刚挂上，全量
-                    if (-1 == this.nextTransferFromWhere) {
+                    // slave 刚连接上，全量
+                    if (this.nextTransferFromWhere == -1) {
                         if (0 == HAConnection.this.slaveRequestOffset) {
                             long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMaxOffset();
                             masterOffset =
@@ -255,6 +257,8 @@ public class HAConnection {
                         long interval =
                                 HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
 
+                        // 间隔大于 5s。这一段代码是干什么的？
+                        // update 2021年12月06日15:31:24 发送心跳包，避免长链接断开。
                         if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
                                 .getHaSendHeartbeatInterval()) {
 
@@ -270,11 +274,14 @@ public class HAConnection {
                                 continue;
                         }
                     } else {
+                        // 上一次没写完，继续写。
+                        // Header 写完写 body。
                         this.lastWriteOver = this.transferData();
                         if (!this.lastWriteOver)
                             continue;
                     }
 
+                    // 这才是真正获取数据的地方。按照偏移量获取 Commitlog 的数据。
                     SelectMappedBufferResult selectResult =
                             HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
                     if (selectResult != null) {
@@ -304,7 +311,6 @@ public class HAConnection {
                         HAConnection.this.haService.getWaitNotifyObject().allWaitForRunning(100);
                     }
                 } catch (Exception e) {
-
                     HAConnection.log.error(this.getServiceName() + " service has exception.", e);
                     break;
                 }

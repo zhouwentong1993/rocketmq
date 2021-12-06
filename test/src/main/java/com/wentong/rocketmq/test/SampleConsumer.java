@@ -12,7 +12,7 @@ public class SampleConsumer {
     public static void main(String[] args) throws Exception {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("basic-push");
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.subscribe("TopicTest", "*");
+        consumer.subscribe("TopicTest1", "*");
         consumer.registerMessageListener((MessageListenerConcurrently) (list, consumeConcurrentlyContext) -> {
             System.out.println(Thread.currentThread().getName());
             System.out.println(list);
