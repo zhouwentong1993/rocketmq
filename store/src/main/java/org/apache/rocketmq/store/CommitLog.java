@@ -863,7 +863,7 @@ public class CommitLog {
 
     // 提交复制请求，以后再分析。
     public CompletableFuture<PutMessageStatus> submitReplicaRequest(AppendMessageResult result, MessageExt messageExt) {
-        if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
+        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SYNC_MASTER) {
             HAService service = this.defaultMessageStore.getHaService();
             // 类似于同步等待确认刷盘
             if (messageExt.isWaitStoreMsgOK()) {
