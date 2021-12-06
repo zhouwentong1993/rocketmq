@@ -110,10 +110,6 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
-    public static void main(String[] args) {
-        System.out.println(brokerVIPChannel(true,"127.0.0.1:9876"));
-    }
-
     // broker 除了 10911 端口外，还开了 10909 端口
     // https://github.com/apache/rocketmq/issues/1510
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {

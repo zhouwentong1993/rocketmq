@@ -126,7 +126,7 @@ public class BrokerStartup {
             }
 
 //            if (commandLine.hasOption('c')) {
-                String file = "/Users/renmai/IdeaProjects/rocketmq/distribution/conf/2m-2s-async/broker-a-s.properties";
+                String file = "/Users/renmai/IdeaProjects/rocketmq/distribution/conf/single-broker.properties";
                 configFile = file;
                 InputStream in = new BufferedInputStream(new FileInputStream(file));
                 properties = new Properties();

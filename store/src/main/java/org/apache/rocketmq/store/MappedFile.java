@@ -174,7 +174,8 @@ public class MappedFile extends ReferenceResource {
 
         ensureDirOK(this.file.getParent());
 
-        try (RandomAccessFile raf = new RandomAccessFile(this.file, "rw")) {
+        try {
+            RandomAccessFile raf = new RandomAccessFile(this.file, "rw");
             this.fileChannel = raf.getChannel();
             this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
             TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(fileSize);
