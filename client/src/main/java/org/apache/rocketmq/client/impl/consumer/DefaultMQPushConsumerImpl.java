@@ -210,7 +210,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.offsetStore = offsetStore;
     }
 
+    // 根据拉取请求去 broker 获取信息。
     public void pullMessage(final PullRequest pullRequest) {
+        //
         final ProcessQueue processQueue = pullRequest.getProcessQueue();
         if (processQueue.isDropped()) {
             log.info("the pull request[{}] is dropped.", pullRequest.toString());
@@ -272,12 +274,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 if (!pullRequest.isPreviouslyLocked()) {
                     long offset = -1L;
                     try {
+                        // 从哪儿开始读，根据策略的不同，选择从本地或者从 broker 上读取。
                         offset = this.rebalanceImpl.computePullFromWhereWithException(pullRequest.getMessageQueue());
                     } catch (Exception e) {
                         this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
                         log.error("Failed to compute pull offset, pullResult: {}", pullRequest, e);
                         return;
                     }
+                    // 我要的你都给不了，肯定 busy 了。
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
                     log.info("the first time to pull message, so fix offset from broker. pullRequest: {} NewOffset: {} brokerBusy: {}",
                         pullRequest, offset, brokerBusy);
@@ -305,6 +309,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         final long beginTimestamp = System.currentTimeMillis();
 
+        // 数据已经准备 OK 了，开始拉取的工作了！
         PullCallback pullCallback = new PullCallback() {
             @Override
             public void onSuccess(PullResult pullResult) {
@@ -368,22 +373,18 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                             pullRequest.getProcessQueue().setDropped(true);
-                            DefaultMQPushConsumerImpl.this.executeTaskLater(new Runnable() {
+                            DefaultMQPushConsumerImpl.this.executeTaskLater(() -> {
+                                try {
+                                    DefaultMQPushConsumerImpl.this.offsetStore.updateOffset(pullRequest.getMessageQueue(),
+                                        pullRequest.getNextOffset(), false);
 
-                                @Override
-                                public void run() {
-                                    try {
-                                        DefaultMQPushConsumerImpl.this.offsetStore.updateOffset(pullRequest.getMessageQueue(),
-                                            pullRequest.getNextOffset(), false);
+                                    DefaultMQPushConsumerImpl.this.offsetStore.persist(pullRequest.getMessageQueue());
 
-                                        DefaultMQPushConsumerImpl.this.offsetStore.persist(pullRequest.getMessageQueue());
+                                    DefaultMQPushConsumerImpl.this.rebalanceImpl.removeProcessQueue(pullRequest.getMessageQueue());
 
-                                        DefaultMQPushConsumerImpl.this.rebalanceImpl.removeProcessQueue(pullRequest.getMessageQueue());
-
-                                        log.warn("fix the pull request offset, {}", pullRequest);
-                                    } catch (Throwable e) {
-                                        log.error("executeTaskLater Exception", e);
-                                    }
+                                    log.warn("fix the pull request offset, {}", pullRequest);
+                                } catch (Throwable e) {
+                                    log.error("executeTaskLater Exception", e);
                                 }
                             }, 10000);
                             break;
@@ -827,13 +828,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
+    // fixme rebalanceImpl 主要用这些数据干什么，topic -> 订阅的数据
     private void copySubscription() throws MQClientException {
         try {
+            // 获取订阅信息
             Map<String, String> sub = this.defaultMQPushConsumer.getSubscription();
             if (sub != null) {
                 for (final Map.Entry<String, String> entry : sub.entrySet()) {
                     final String topic = entry.getKey();
                     final String subString = entry.getValue();
+                    // 获取订阅数据，按照 subString 过滤。
                     SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subString);
                     this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
                 }
@@ -843,16 +847,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.messageListenerInner = this.defaultMQPushConsumer.getMessageListener();
             }
 
-            switch (this.defaultMQPushConsumer.getMessageModel()) {
-                case BROADCASTING:
-                    break;
-                case CLUSTERING:
-                    final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup());
-                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(retryTopic, SubscriptionData.SUB_ALL);
-                    this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
-                    break;
-                default:
-                    break;
+            if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
+                final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup());
+                SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(retryTopic, SubscriptionData.SUB_ALL);
+                this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
             }
         } catch (Exception e) {
             throw new MQClientException("subscription exception", e);

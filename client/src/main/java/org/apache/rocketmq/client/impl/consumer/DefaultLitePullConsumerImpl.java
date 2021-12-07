@@ -123,19 +123,19 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
-        new ConcurrentHashMap<MessageQueue, PullTaskImpl>();
+        new ConcurrentHashMap<>();
 
     private AssignedMessageQueue assignedMessageQueue = new AssignedMessageQueue();
 
-    private final BlockingQueue<ConsumeRequest> consumeRequestCache = new LinkedBlockingQueue<ConsumeRequest>();
+    private final BlockingQueue<ConsumeRequest> consumeRequestCache = new LinkedBlockingQueue<>();
 
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     private final ScheduledExecutorService scheduledExecutorService;
 
-    private Map<String, TopicMessageQueueChangeListener> topicMessageQueueChangeListenerMap = new HashMap<String, TopicMessageQueueChangeListener>();
+    private Map<String, TopicMessageQueueChangeListener> topicMessageQueueChangeListenerMap = new HashMap<>();
 
-    private Map<String, Set<MessageQueue>> messageQueuesForTopic = new HashMap<String, Set<MessageQueue>>();
+    private Map<String, Set<MessageQueue>> messageQueuesForTopic = new HashMap<>();
 
     private long consumeRequestFlowControlTimes = 0L;
 
@@ -156,12 +156,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             this.defaultLitePullConsumer.getPullThreadNums(),
             new ThreadFactoryImpl("PullMsgThread-" + this.defaultLitePullConsumer.getConsumerGroup())
         );
-        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "MonitorMessageQueueChangeThread");
-            }
-        });
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "MonitorMessageQueueChangeThread"));
         this.pullTimeDelayMillsWhenException = defaultLitePullConsumer.getPullTimeDelayMillsWhenException();
     }
 
@@ -250,20 +245,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void shutdown() {
-        switch (this.serviceState) {
-            case CREATE_JUST:
-                break;
-            case RUNNING:
-                persistConsumerOffset();
-                this.mQClientFactory.unregisterConsumer(this.defaultLitePullConsumer.getConsumerGroup());
-                scheduledThreadPoolExecutor.shutdown();
-                scheduledExecutorService.shutdown();
-                this.mQClientFactory.shutdown();
-                this.serviceState = ServiceState.SHUTDOWN_ALREADY;
-                log.info("the consumer [{}] shutdown OK", this.defaultLitePullConsumer.getConsumerGroup());
-                break;
-            default:
-                break;
+        if (this.serviceState == ServiceState.RUNNING) {
+            persistConsumerOffset();
+            this.mQClientFactory.unregisterConsumer(this.defaultLitePullConsumer.getConsumerGroup());
+            scheduledThreadPoolExecutor.shutdown();
+            scheduledExecutorService.shutdown();
+            this.mQClientFactory.shutdown();
+            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
+            log.info("the consumer [{}] shutdown OK", this.defaultLitePullConsumer.getConsumerGroup());
         }
     }
 
@@ -328,6 +317,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private void initRebalanceImpl() {
         this.rebalanceImpl.setConsumerGroup(this.defaultLitePullConsumer.getConsumerGroup());
         this.rebalanceImpl.setMessageModel(this.defaultLitePullConsumer.getMessageModel());
+        // 具体的策略？？
         this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultLitePullConsumer.getAllocateMessageQueueStrategy());
         this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
     }
@@ -343,11 +333,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (this.defaultLitePullConsumer.getOffsetStore() != null) {
             this.offsetStore = this.defaultLitePullConsumer.getOffsetStore();
         } else {
+            // 根据不同的消费模式选择不同的位置记录。
             switch (this.defaultLitePullConsumer.getMessageModel()) {
                 case BROADCASTING:
                     this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultLitePullConsumer.getConsumerGroup());
                     break;
-                case CLUSTERING:
+                case CLUSTERING: // 集群方式，broker 上 topic 的一条消息只会被一个 consumer 消费，是否就意味着所有 broker 的 consumer 数据要一致？
                     this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultLitePullConsumer.getConsumerGroup());
                     break;
                 default:
@@ -360,16 +351,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private void startScheduleTask() {
         scheduledExecutorService.scheduleAtFixedRate(
-            new Runnable() {
-                @Override
-                public void run() {
+                () -> {
                     try {
+                        // 干嘛使的？监听 topic 上的队列消息？？
                         fetchTopicMessageQueuesAndCompare();
                     } catch (Exception e) {
                         log.error("ScheduledTask fetchMessageQueuesAndCompare exception", e);
                     }
-                }
-            }, 1000 * 10, this.getDefaultLitePullConsumer().getTopicMetadataCheckIntervalMillis(), TimeUnit.MILLISECONDS);
+                }, 1000 * 10L, this.getDefaultLitePullConsumer().getTopicMetadataCheckIntervalMillis(), TimeUnit.MILLISECONDS);
     }
 
     private void operateAfterRunning() throws MQClientException {

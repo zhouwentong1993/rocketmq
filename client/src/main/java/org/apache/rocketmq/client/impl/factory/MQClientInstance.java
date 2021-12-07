@@ -116,6 +116,7 @@ public class MQClientInstance {
         // 拉取消息的核心实现
         this.pullMessageService = new PullMessageService(this);
 
+        // 重平衡实现
         this.rebalanceService = new RebalanceService(this);
 
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);

@@ -141,7 +141,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Subscription relationship
      */
-    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<String, String>();
+    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<>();
 
     /**
      * Message listener
@@ -404,95 +404,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         }
     }
 
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        createTopic(key, withNamespace(newTopic), queueNum, 0);
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
-        this.defaultMQPushConsumerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.searchOffset(queueWithNamespace(mq), timestamp);
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.maxOffset(queueWithNamespace(mq));
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.minOffset(queueWithNamespace(mq));
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.earliestMsgStoreTime(queueWithNamespace(mq));
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public MessageExt viewMessage(
-        String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.defaultMQPushConsumerImpl.viewMessage(offsetMsgId);
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
-        return this.defaultMQPushConsumerImpl.queryMessage(withNamespace(topic), key, maxNum, begin, end);
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
-    public MessageExt viewMessage(String topic,
-        String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        try {
-            MessageDecoder.decodeMessageId(msgId);
-            return this.viewMessage(msgId);
-        } catch (Exception e) {
-            // Ignore
-        }
-        return this.defaultMQPushConsumerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
-    }
 
     public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
         return allocateMessageQueueStrategy;
@@ -819,21 +730,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.defaultMQPushConsumerImpl.resume();
     }
 
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    public OffsetStore getOffsetStore() {
-        return offsetStore;
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    public void setOffsetStore(OffsetStore offsetStore) {
-        this.offsetStore = offsetStore;
-    }
 
     public String getConsumeTimestamp() {
         return consumeTimestamp;
@@ -901,5 +797,111 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public TraceDispatcher getTraceDispatcher() {
         return traceDispatcher;
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
+        createTopic(key, withNamespace(newTopic), queueNum, 0);
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
+        this.defaultMQPushConsumerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.searchOffset(queueWithNamespace(mq), timestamp);
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.maxOffset(queueWithNamespace(mq));
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.minOffset(queueWithNamespace(mq));
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.earliestMsgStoreTime(queueWithNamespace(mq));
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public MessageExt viewMessage(
+            String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQPushConsumerImpl.viewMessage(offsetMsgId);
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+            throws MQClientException, InterruptedException {
+        return this.defaultMQPushConsumerImpl.queryMessage(withNamespace(topic), key, maxNum, begin, end);
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    @Override
+    public MessageExt viewMessage(String topic,
+                                  String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        try {
+            MessageDecoder.decodeMessageId(msgId);
+            return this.viewMessage(msgId);
+        } catch (Exception e) {
+            // Ignore
+        }
+        return this.defaultMQPushConsumerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    public OffsetStore getOffsetStore() {
+        return offsetStore;
+    }
+
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
+    public void setOffsetStore(OffsetStore offsetStore) {
+        this.offsetStore = offsetStore;
     }
 }

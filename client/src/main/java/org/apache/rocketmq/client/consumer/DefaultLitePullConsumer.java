@@ -56,18 +56,18 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     /**
      * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
      */
-    private long brokerSuspendMaxTimeMillis = 1000 * 20;
+    private long brokerSuspendMaxTimeMillis = 1000 * 20L;
 
     /**
      * Long polling mode, the Consumer connection timeout(must greater than brokerSuspendMaxTimeMillis), it is not
-     * recommended to modify
+     * recommended modifying
      */
-    private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
+    private long consumerTimeoutMillisWhenSuspend = 1000 * 30L;
 
     /**
      * The socket timeout in milliseconds
      */
-    private long consumerPullTimeoutMillis = 1000 * 10;
+    private long consumerPullTimeoutMillis = 1000 * 10L;
 
     /**
      * Consumption pattern,default is clustering
@@ -109,7 +109,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     /**
      * Maximum commit offset interval time in milliseconds.
      */
-    private long autoCommitIntervalMillis = 5 * 1000;
+    private long autoCommitIntervalMillis = 5 * 1000L;
 
     /**
      * Maximum number of messages pulled each time.
