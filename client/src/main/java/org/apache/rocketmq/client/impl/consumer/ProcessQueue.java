@@ -37,7 +37,7 @@ import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 /**
  * Queue consumption snapshot
- * 核心数据结构 fixme
+ * 核心数据结构
  */
 public class ProcessQueue {
     public static final long REBALANCE_LOCK_MAX_LIVE_TIME =

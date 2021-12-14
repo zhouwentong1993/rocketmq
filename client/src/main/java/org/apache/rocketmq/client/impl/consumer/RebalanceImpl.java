@@ -43,6 +43,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
+    // 和队列相关联？一个队列一个处理队列？不应该和 consumer 对应吗 fixme
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<>(64);
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<>();
@@ -117,13 +118,9 @@ public abstract class RebalanceImpl {
     }
 
     private HashMap<String/* brokerName */, Set<MessageQueue>> buildProcessQueueTableByBrokerName() {
-        HashMap<String, Set<MessageQueue>> result = new HashMap<String, Set<MessageQueue>>();
+        HashMap<String, Set<MessageQueue>> result = new HashMap<>();
         for (MessageQueue mq : this.processQueueTable.keySet()) {
-            Set<MessageQueue> mqs = result.get(mq.getBrokerName());
-            if (null == mqs) {
-                mqs = new HashSet<MessageQueue>();
-                result.put(mq.getBrokerName(), mqs);
-            }
+            Set<MessageQueue> mqs = result.computeIfAbsent(mq.getBrokerName(), k -> new HashSet<>());
 
             mqs.add(mq);
         }
@@ -215,6 +212,7 @@ public abstract class RebalanceImpl {
     }
 
     public void doRebalance(final boolean isOrder) {
+        // 获取以 topic 为维度的订阅数据
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
@@ -238,6 +236,7 @@ public abstract class RebalanceImpl {
 
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
+            // 广播模式，要做的事情不多。
             case BROADCASTING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
@@ -256,12 +255,12 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: {
+                // 如果 consumer 不变，那么重平衡也不会变。
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                // 获取所有的 consumer
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
-                if (null == mqSet) {
-                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                        log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
-                    }
+                if (mqSet == null && !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
                 }
 
                 if (null == cidAll) {
@@ -269,15 +268,16 @@ public abstract class RebalanceImpl {
                 }
 
                 if (mqSet != null && cidAll != null) {
-                    List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
-                    mqAll.addAll(mqSet);
+                    List<MessageQueue> mqAll = new ArrayList<>(mqSet);
 
+                    // 排序算法：topic -> broker name -> queue id。
                     Collections.sort(mqAll);
                     Collections.sort(cidAll);
 
+                    // 不同的分配策略，策略模式。
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
-                    List<MessageQueue> allocateResult = null;
+                    List<MessageQueue> allocateResult;
                     try {
                         allocateResult = strategy.allocate(
                             this.consumerGroup,
@@ -290,7 +290,7 @@ public abstract class RebalanceImpl {
                         return;
                     }
 
-                    Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
+                    Set<MessageQueue> allocateResultSet = new HashSet<>();
                     if (allocateResult != null) {
                         allocateResultSet.addAll(allocateResult);
                     }
@@ -326,18 +326,22 @@ public abstract class RebalanceImpl {
         }
     }
 
-    // 核心重平衡实现逻辑。
+    /**
+     * @param mqSet 从 broker 处获取的 topic 对应的消息队列数据
+     */
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
         boolean changed = false;
 
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
+        // 根据规则先淘汰数据。
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
             MessageQueue mq = next.getKey();
             ProcessQueue pq = next.getValue();
 
             if (mq.getTopic().equals(topic)) {
+                // 过时了，淘汰掉这组数据
                 if (!mqSet.contains(mq)) {
                     pq.setDropped(true);
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
@@ -345,27 +349,23 @@ public abstract class RebalanceImpl {
                         changed = true;
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
                     }
-                } else if (pq.isPullExpired()) {
-                    switch (this.consumeType()) {
-                        case CONSUME_ACTIVELY:
-                            break;
-                        case CONSUME_PASSIVELY:
-                            pq.setDropped(true);
-                            if (this.removeUnnecessaryMessageQueue(mq, pq)) {
-                                it.remove();
-                                changed = true;
-                                log.error("[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it",
+                } else if (pq.isPullExpired()) { // 超过 120s
+                    // push 模式下，上次 push 的时间超过了 120s
+                    if (this.consumeType() == ConsumeType.CONSUME_PASSIVELY) {
+                        pq.setDropped(true);
+                        if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                            it.remove();
+                            changed = true;
+                            log.error("[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it",
                                     consumerGroup, mq);
-                            }
-                            break;
-                        default:
-                            break;
+                        }
                     }
                 }
             }
         }
 
-        List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
+        // 新添加的队列，在这儿需要登记一下。
+        List<PullRequest> pullRequestList = new ArrayList<>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
                 if (isOrder && !this.lock(mq)) {
@@ -376,7 +376,7 @@ public abstract class RebalanceImpl {
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
 
-                long nextOffset = -1L;
+                long nextOffset;
                 try {
                     nextOffset = this.computePullFromWhereWithException(mq);
                 } catch (Exception e) {
@@ -390,6 +390,7 @@ public abstract class RebalanceImpl {
                         log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
                     } else {
                         log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
+                        // 创建 PullRequest 请求。
                         PullRequest pullRequest = new PullRequest();
                         pullRequest.setConsumerGroup(consumerGroup);
                         pullRequest.setNextOffset(nextOffset);

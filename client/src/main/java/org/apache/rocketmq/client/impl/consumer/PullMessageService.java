@@ -84,7 +84,9 @@ public class PullMessageService extends ServiceThread {
         while (!this.isStopped()) {
             try {
                 // 阻塞式获取
+                // 获取拉取请求
                 PullRequest pullRequest = this.pullRequestQueue.take();
+                // 直接拉取消息
                 this.pullMessage(pullRequest);
             } catch (Exception e) {
                 log.error("Pull Message Service Run Method exception", e);

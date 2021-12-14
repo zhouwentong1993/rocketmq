@@ -1000,7 +1000,7 @@ public class MQClientInstance {
 
     public List<String> findConsumerIdList(final String topic, final String group) {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
-        if (null == brokerAddr) {
+        if (brokerAddr == null) {
             this.updateTopicRouteInfoFromNameServer(topic);
             brokerAddr = this.findBrokerAddrByTopic(topic);
         }
@@ -1013,7 +1013,7 @@ public class MQClientInstance {
             }
         }
 
-        return null;
+        return Collections.emptyList();
     }
 
     public String findBrokerAddrByTopic(final String topic) {

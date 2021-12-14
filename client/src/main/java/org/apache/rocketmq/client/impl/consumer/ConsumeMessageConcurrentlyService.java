@@ -55,6 +55,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerConcurrently messageListener;
     private final BlockingQueue<Runnable> consumeRequestQueue;
+    // 消费线程池
     private final ThreadPoolExecutor consumeExecutor;
     private final String consumerGroup;
 
@@ -73,7 +74,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         this.consumeExecutor = new ThreadPoolExecutor(
             this.defaultMQPushConsumer.getConsumeThreadMin(),
             this.defaultMQPushConsumer.getConsumeThreadMax(),
-            1000 * 60,
+            1000 * 60L,
             TimeUnit.MILLISECONDS,
             this.consumeRequestQueue,
             new ThreadFactoryImpl("ConsumeMessageThread_"));
