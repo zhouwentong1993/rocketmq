@@ -47,6 +47,7 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
+    // 在 rebalance 的时候，只有 push 的实现会被调用到这里。
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         try {
             this.pullRequestQueue.put(pullRequest);

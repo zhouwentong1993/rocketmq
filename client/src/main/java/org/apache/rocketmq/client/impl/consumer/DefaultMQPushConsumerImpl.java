@@ -235,6 +235,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
+        // 做限流用的，两个维度的限流：消息数和消息大小。如果到达阈值，则休息个 50ms。
         long cachedMessageCount = processQueue.getMsgCount().get();
         long cachedMessageSizeInMiB = processQueue.getMsgSize().get() / (1024 * 1024);
 
@@ -272,7 +273,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         } else {
             if (processQueue.isLocked()) {
                 if (!pullRequest.isPreviouslyLocked()) {
-                    long offset = -1L;
+                    long offset;
                     try {
                         // 从哪儿开始读，根据策略的不同，选择从本地或者从 broker 上读取。
                         offset = this.rebalanceImpl.computePullFromWhereWithException(pullRequest.getMessageQueue());
@@ -312,6 +313,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         // 数据已经准备 OK 了，开始拉取的工作了！
         PullCallback pullCallback = new PullCallback() {
             @Override
+            // 这里不太理解啊，pullResult 为什么不为空呢？
+            // update 2021年12月14日18:29:08，这里只是声明了该对象，后面实际的调用是在 this.pullAPIWrapper.pullKernelImpl 调用的，将这个对象传入了。
+            // 发起了一个异步调用。
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
                     pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
@@ -322,11 +326,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             long prevRequestOffset = pullRequest.getNextOffset();
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
                             long pullRT = System.currentTimeMillis() - beginTimestamp;
+                            // 采样数据
                             DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullRT(pullRequest.getConsumerGroup(),
                                 pullRequest.getMessageQueue().getTopic(), pullRT);
 
                             long firstMsgOffset = Long.MAX_VALUE;
                             if (pullResult.getMsgFoundList() == null || pullResult.getMsgFoundList().isEmpty()) {
+                                // 没拉到，再赶紧触发一次。
                                 DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             } else {
                                 firstMsgOffset = pullResult.getMsgFoundList().get(0).getQueueOffset();
@@ -345,6 +351,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                     DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
                                         DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());
                                 } else {
+                                    // 拉到了，赶紧再拉一次。根据历史经验，有消息之后肯定还会继续有，局部最优原则。
                                     DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                                 }
                             }
@@ -431,6 +438,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             classFilter // class filter
         );
         try {
+            // 真正地去 broker 拉取消息
             this.pullAPIWrapper.pullKernelImpl(
                 pullRequest.getMessageQueue(),
                 subExpression,

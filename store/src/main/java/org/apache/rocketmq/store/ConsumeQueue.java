@@ -492,12 +492,11 @@ public class ConsumeQueue {
     }
 
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
-        int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
         if (offset >= this.getMinLogicOffset()) {
             MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
             if (mappedFile != null) {
-                return mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
+                return mappedFile.selectMappedBuffer((int) (offset % this.mappedFileSize));
             }
         }
         return null;

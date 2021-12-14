@@ -520,6 +520,9 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
+    /**
+     * 根据 consumer 请求来 broker 拉取指定的消息
+     */
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
                                        final int maxMsgNums,
                                        final MessageFilter messageFilter) {
@@ -535,8 +538,8 @@ public class DefaultMessageStore implements MessageStore {
 
         long beginTime = this.getSystemClock().now();
 
-        GetMessageStatus status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
-        long nextBeginOffset = offset;
+        GetMessageStatus status;
+        long nextBeginOffset;
         long minOffset = 0;
         long maxOffset = 0;
 
@@ -544,6 +547,7 @@ public class DefaultMessageStore implements MessageStore {
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
+        // （获得该 topic 对应的 queue ）对应的 ConsumeQueue 对象。
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             minOffset = consumeQueue.getMinOffsetInQueue();
@@ -585,9 +589,8 @@ public class DefaultMessageStore implements MessageStore {
 
                             maxPhyOffsetPulling = offsetPy;
 
-                            if (nextPhyFileStartOffset != Long.MIN_VALUE) {
-                                if (offsetPy < nextPhyFileStartOffset)
-                                    continue;
+                            if (offsetPy < nextPhyFileStartOffset) {
+                                continue;
                             }
 
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
@@ -619,6 +622,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
+                            // 根据前面找到的 offset 和 size，去 commitlog 查找数据。
                             SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
                             if (null == selectResult) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -650,6 +654,7 @@ public class DefaultMessageStore implements MessageStore {
                             brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, fallBehind);
                         }
 
+                        // 下一个 offset = 当前的 offset + 本次拉取个数的 offset
                         nextBeginOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
                         long diff = maxOffsetPy - maxPhyOffsetPulling;
@@ -690,8 +695,7 @@ public class DefaultMessageStore implements MessageStore {
     public long getMaxOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            long offset = logic.getMaxOffsetInQueue();
-            return offset;
+            return logic.getMaxOffsetInQueue();
         }
 
         return 0;
@@ -713,8 +717,7 @@ public class DefaultMessageStore implements MessageStore {
             SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeQueueOffset);
             if (bufferConsumeQueue != null) {
                 try {
-                    long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                    return offsetPy;
+                    return bufferConsumeQueue.getByteBuffer().getLong();
                 } finally {
                     bufferConsumeQueue.release();
                 }

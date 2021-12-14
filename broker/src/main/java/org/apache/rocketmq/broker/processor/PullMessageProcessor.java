@@ -89,6 +89,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         return false;
     }
 
+    // 处理拉取消息请求
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
@@ -149,7 +150,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
 
-        SubscriptionData subscriptionData = null;
+        SubscriptionData subscriptionData;
         ConsumerFilterData consumerFilterData = null;
         if (hasSubscriptionFlag) {
             try {

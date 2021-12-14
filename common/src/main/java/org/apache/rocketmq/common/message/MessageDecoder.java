@@ -394,7 +394,7 @@ public class MessageDecoder {
     }
 
     public static List<MessageExt> decodes(ByteBuffer byteBuffer, final boolean readBody) {
-        List<MessageExt> msgExts = new ArrayList<MessageExt>();
+        List<MessageExt> msgExts = new ArrayList<>();
         while (byteBuffer.hasRemaining()) {
             MessageExt msgExt = clientDecode(byteBuffer, readBody);
             if (null != msgExt) {

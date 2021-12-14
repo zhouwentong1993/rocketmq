@@ -390,7 +390,7 @@ public abstract class RebalanceImpl {
                         log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
                     } else {
                         log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
-                        // 创建 PullRequest 请求。
+                        // 创建 PullRequest 请求。但是没有用到啊！只有在 push 模式下用到了
                         PullRequest pullRequest = new PullRequest();
                         pullRequest.setConsumerGroup(consumerGroup);
                         pullRequest.setNextOffset(nextOffset);

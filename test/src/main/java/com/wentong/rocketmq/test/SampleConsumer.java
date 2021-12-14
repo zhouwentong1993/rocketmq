@@ -17,6 +17,7 @@ public class SampleConsumer {
             System.out.println(Thread.currentThread().getName());
             System.out.println(list);
             System.out.println("----------");
+            System.out.println(consumeConcurrentlyContext);
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
         consumer.start();

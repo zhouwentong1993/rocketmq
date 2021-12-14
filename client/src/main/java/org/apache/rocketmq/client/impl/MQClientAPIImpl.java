@@ -607,27 +607,23 @@ public class MQClientAPIImpl {
             final long timeoutMillis,
             final PullCallback pullCallback
     ) throws RemotingException, InterruptedException {
-        this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
-            @Override
-            public void operationComplete(ResponseFuture responseFuture) {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    try {
-                        PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response, addr);
-                        assert pullResult != null;
-                        pullCallback.onSuccess(pullResult);
-                    } catch (Exception e) {
-                        pullCallback.onException(e);
-                    }
+        this.remotingClient.invokeAsync(addr, request, timeoutMillis, responseFuture -> {
+            RemotingCommand response = responseFuture.getResponseCommand();
+            if (response != null) {
+                try {
+                    PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response, addr);
+                    pullCallback.onSuccess(pullResult);
+                } catch (Exception e) {
+                    pullCallback.onException(e);
+                }
+            } else {
+                if (!responseFuture.isSendRequestOK()) {
+                    pullCallback.onException(new MQClientException("send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
+                } else if (responseFuture.isTimeout()) {
+                    pullCallback.onException(new MQClientException("wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
+                            responseFuture.getCause()));
                 } else {
-                    if (!responseFuture.isSendRequestOK()) {
-                        pullCallback.onException(new MQClientException("send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
-                    } else if (responseFuture.isTimeout()) {
-                        pullCallback.onException(new MQClientException("wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
-                                responseFuture.getCause()));
-                    } else {
-                        pullCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ". Request: " + request, responseFuture.getCause()));
-                    }
+                    pullCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ". Request: " + request, responseFuture.getCause()));
                 }
             }
         });
