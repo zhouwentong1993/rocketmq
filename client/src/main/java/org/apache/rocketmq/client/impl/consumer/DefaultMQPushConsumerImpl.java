@@ -1133,9 +1133,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private long computeAccumulationTotal() {
         long msgAccTotal = 0;
         ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = this.rebalanceImpl.getProcessQueueTable();
-        Iterator<Entry<MessageQueue, ProcessQueue>> it = processQueueTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<MessageQueue, ProcessQueue> next = it.next();
+        for (Entry<MessageQueue, ProcessQueue> next : processQueueTable.entrySet()) {
             ProcessQueue value = next.getValue();
             msgAccTotal += value.getMsgAccCnt();
         }

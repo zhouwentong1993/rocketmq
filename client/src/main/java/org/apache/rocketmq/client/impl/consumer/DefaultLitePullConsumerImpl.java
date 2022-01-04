@@ -186,7 +186,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             throw new IllegalStateException(SUBSCRIPTION_CONFLICT_EXCEPTION_MESSAGE);
         }
     }
-
+    // next time
     private void updateAssignedMessageQueue(String topic, Set<MessageQueue> assignedMessageQueue) {
         this.assignedMessageQueue.updateAssignedMessageQueue(topic, assignedMessageQueue);
     }
@@ -253,10 +253,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 initMQClientFactory();
 
+                // 重平衡实现
                 initRebalanceImpl();
 
                 initPullAPIWrapper();
 
+                // 初始化 offset 存储
                 initOffsetStore();
 
                 mQClientFactory.start();
@@ -933,16 +935,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     @Override
     public void doRebalance() {
-        if (this.rebalanceImpl != null) {
-            this.rebalanceImpl.doRebalance(false);
-        }
+        this.rebalanceImpl.doRebalance(false);
     }
 
     @Override
     public void persistConsumerOffset() {
         try {
             checkServiceState();
-            Set<MessageQueue> mqs = new HashSet<MessageQueue>();
+            Set<MessageQueue> mqs = new HashSet<>();
             if (this.subscriptionType == SubscriptionType.SUBSCRIBE) {
                 Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
                 mqs.addAll(allocateMq);

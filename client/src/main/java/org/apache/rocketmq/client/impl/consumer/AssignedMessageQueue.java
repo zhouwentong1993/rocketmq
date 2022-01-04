@@ -170,13 +170,7 @@ public class AssignedMessageQueue {
 
     public void removeAssignedMessageQueue(String topic) {
         synchronized (this.assignedMessageQueueState) {
-            Iterator<Map.Entry<MessageQueue, MessageQueueState>> it = this.assignedMessageQueueState.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<MessageQueue, MessageQueueState> next = it.next();
-                if (next.getKey().getTopic().equals(topic)) {
-                    it.remove();
-                }
-            }
+            this.assignedMessageQueueState.entrySet().removeIf(next -> next.getKey().getTopic().equals(topic));
         }
     }
 

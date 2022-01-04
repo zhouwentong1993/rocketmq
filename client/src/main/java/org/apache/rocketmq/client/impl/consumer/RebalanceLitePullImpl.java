@@ -45,6 +45,12 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
         this.litePullConsumerImpl = litePullConsumerImpl;
     }
 
+    /**
+     * 当重平衡触发时，应该怎么做
+     * @param topic 涉及到的 topic
+     * @param mqAll 当前 topic 下的所有 MessageQueue
+     * @param mqDivided 分配到当前 consumer 的 MessageQueue
+     */
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
         MessageQueueListener messageQueueListener = this.litePullConsumerImpl.getDefaultLitePullConsumer().getMessageQueueListener();
@@ -147,6 +153,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
         return result;
     }
 
+    // do noting?
     @Override
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {
     }

@@ -36,7 +36,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Default pulling consumer.
- * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumer} is recommend to use
+ * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumer} is recommended to use
  * in the scenario of actively pulling messages.
  */
 @Deprecated

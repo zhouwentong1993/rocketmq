@@ -26,6 +26,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 /**
  * Offset store interface
  */
+// 偏移量记录，有两种实现方式：本地文件存储和远程 broker 存储。
 public interface OffsetStore {
     /**
      * Load

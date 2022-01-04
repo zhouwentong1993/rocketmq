@@ -211,6 +211,7 @@ public abstract class RebalanceImpl {
         }
     }
 
+    // read 重平衡实现
     public void doRebalance(final boolean isOrder) {
         // 获取以 topic 为维度的订阅数据
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
@@ -234,6 +235,7 @@ public abstract class RebalanceImpl {
         return subscriptionInner;
     }
 
+    // 重平衡需要获取两个信息：消费者信息和消息队列信息。
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
             // 广播模式，要做的事情不多。
@@ -256,6 +258,7 @@ public abstract class RebalanceImpl {
             }
             case CLUSTERING: {
                 // 如果 consumer 不变，那么重平衡也不会变。
+                // update 2022年01月04日18:55:28 错误，重平衡取决于两点：消费者和 MessageQueue。
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 // 获取所有的 consumer
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
@@ -267,6 +270,7 @@ public abstract class RebalanceImpl {
                     log.warn("doRebalance, {} {}, get consumer id list failed", consumerGroup, topic);
                 }
 
+                // 根据 MessageQueue 和 Consumer list 进行逻辑判断。
                 if (mqSet != null && cidAll != null) {
                     List<MessageQueue> mqAll = new ArrayList<>(mqSet);
 
@@ -279,6 +283,7 @@ public abstract class RebalanceImpl {
 
                     List<MessageQueue> allocateResult;
                     try {
+                        // 为当前 cid 分配 MessageQueue。
                         allocateResult = strategy.allocate(
                             this.consumerGroup,
                             this.mQClientFactory.getClientId(),
@@ -295,6 +300,9 @@ public abstract class RebalanceImpl {
                         allocateResultSet.addAll(allocateResult);
                     }
 
+                    // 看计算的分配结果和原来的分配结果是否相同。
+                    // 因为 consumer 在不同的机器上运行，所以需要通过某些确定的标识（ClientID(ip 组成)、broker id）来进行计算。
+                    // 这样就会得到一个确定的结果。否则必须通过中央协调器来实现。
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -328,17 +336,19 @@ public abstract class RebalanceImpl {
 
     /**
      * @param mqSet 从 broker 处获取的 topic 对应的消息队列数据
+     *              update 2022年01月04日18:30:32。
+     *              错误，这个是在本地经过计算后得到的当前 client（consumer）分配到的 MessageQueue 集合。
      */
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
         boolean changed = false;
 
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
-        // 根据规则先淘汰数据。
+        // 维护旧数据。
         while (it.hasNext()) {
-            Entry<MessageQueue, ProcessQueue> next = it.next();
-            MessageQueue mq = next.getKey();
-            ProcessQueue pq = next.getValue();
+            Entry<MessageQueue, ProcessQueue> data = it.next();
+            MessageQueue mq = data.getKey();
+            ProcessQueue pq = data.getValue();
 
             if (mq.getTopic().equals(topic)) {
                 // 过时了，淘汰掉这组数据
@@ -373,6 +383,7 @@ public abstract class RebalanceImpl {
                     continue;
                 }
 
+                // 需要重新添加了，需要把脏数据清除掉。
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
 
@@ -390,7 +401,8 @@ public abstract class RebalanceImpl {
                         log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
                     } else {
                         log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
-                        // 创建 PullRequest 请求。但是没有用到啊！只有在 push 模式下用到了
+                        // 创建 PullRequest 请求。但是没有用到啊！只有在 push 模式下用到了。
+                        // update 2022年01月04日18:45:39。push 模式是实时的，所以需要用到。pull 模式是非实时的，只要将数据放入到 processQueueTable 就可以。
                         PullRequest pullRequest = new PullRequest();
                         pullRequest.setConsumerGroup(consumerGroup);
                         pullRequest.setNextOffset(nextOffset);
