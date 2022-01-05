@@ -55,7 +55,6 @@ import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.*;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
-import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
@@ -583,22 +582,15 @@ public class MQClientAPIImpl {
             final PullCallback pullCallback
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
-
         switch (communicationMode) {
-            case ONEWAY:
-                assert false;
-                return null;
             case ASYNC:
                 this.pullMessageAsync(addr, request, timeoutMillis, pullCallback);
                 return null;
             case SYNC:
                 return this.pullMessageSync(addr, request, timeoutMillis);
             default:
-                assert false;
-                break;
+                throw new IllegalArgumentException(communicationMode.name());
         }
-
-        return null;
     }
 
     private void pullMessageAsync(
@@ -635,14 +627,13 @@ public class MQClientAPIImpl {
             final long timeoutMillis
     ) throws RemotingException, InterruptedException, MQBrokerException {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-        assert response != null;
         return this.processPullResponse(response, addr);
     }
 
     private PullResult processPullResponse(
             final RemotingCommand response,
             final String addr) throws MQBrokerException, RemotingCommandException {
-        PullStatus pullStatus = PullStatus.NO_NEW_MSG;
+        PullStatus pullStatus;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS:
                 pullStatus = PullStatus.FOUND;

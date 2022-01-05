@@ -82,12 +82,12 @@ public class GetMessageResult {
         return messageBufferList;
     }
 
-    public void addMessage(final SelectMappedBufferResult mapedBuffer) {
-        this.messageMapedList.add(mapedBuffer);
-        this.messageBufferList.add(mapedBuffer.getByteBuffer());
-        this.bufferTotalSize += mapedBuffer.getSize();
+    public void addMessage(final SelectMappedBufferResult mappedBuffer) {
+        this.messageMapedList.add(mappedBuffer);
+        this.messageBufferList.add(mappedBuffer.getByteBuffer());
+        this.bufferTotalSize += mappedBuffer.getSize();
         this.msgCount4Commercial += (int) Math.ceil(
-            mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
+            mappedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
     }
 
     public void release() {

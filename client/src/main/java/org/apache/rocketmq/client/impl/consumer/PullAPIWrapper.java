@@ -191,7 +191,7 @@ public class PullAPIWrapper {
             requestHeader.setTopic(mq.getTopic());
             // 从哪个 queue 获取数据
             requestHeader.setQueueId(mq.getQueueId());
-            // 从哪儿下标获取数据
+            // 从哪个下标获取数据
             requestHeader.setQueueOffset(offset);
             requestHeader.setMaxMsgNums(maxNums);
             requestHeader.setSysFlag(sysFlagInner);

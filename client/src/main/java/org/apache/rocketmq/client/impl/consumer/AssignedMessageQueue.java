@@ -23,6 +23,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 已经分配的消息队列？？fixme
+ */
 public class AssignedMessageQueue {
 
     private final ConcurrentHashMap<MessageQueue, MessageQueueState> assignedMessageQueueState;
@@ -125,6 +128,7 @@ public class AssignedMessageQueue {
 
     public void updateAssignedMessageQueue(String topic, Collection<MessageQueue> assigned) {
         synchronized (this.assignedMessageQueueState) {
+            // 将之前分配过的，但是此次分配结果中没有的删除。
             Iterator<Map.Entry<MessageQueue, MessageQueueState>> it = this.assignedMessageQueueState.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<MessageQueue, MessageQueueState> next = it.next();

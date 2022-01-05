@@ -186,7 +186,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             throw new IllegalStateException(SUBSCRIPTION_CONFLICT_EXCEPTION_MESSAGE);
         }
     }
-    // next time
+
     private void updateAssignedMessageQueue(String topic, Set<MessageQueue> assignedMessageQueue) {
         this.assignedMessageQueue.updateAssignedMessageQueue(topic, assignedMessageQueue);
     }
@@ -402,11 +402,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return pullAPIWrapper;
     }
 
+    // 将任务从 broker 拉取到本地，经过转义，将 ByteBuffer -> Message。然后将 Message 放入到消费请求的阻塞队列中。
     private void startPullTask(Collection<MessageQueue> mqSet) {
         for (MessageQueue messageQueue : mqSet) {
             if (!this.taskTable.containsKey(messageQueue)) {
                 PullTaskImpl pullTask = new PullTaskImpl(messageQueue);
                 this.taskTable.put(messageQueue, pullTask);
+                // 立马执行拉取任务。
                 this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
             }
         }
@@ -503,6 +505,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    // 这是对外的接口，通过这个接口，consumer poll 任务进行处理。
     public synchronized List<MessageExt> poll(long timeout) {
         try {
             checkServiceState();
@@ -657,16 +660,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (processQueue != null) {
             processQueue.clear();
         }
-        Iterator<ConsumeRequest> iter = consumeRequestCache.iterator();
-        while (iter.hasNext()) {
-            if (iter.next().getMessageQueue().equals(messageQueue)) {
-                iter.remove();
-            }
-        }
+        consumeRequestCache.removeIf(consumeRequest -> consumeRequest.getMessageQueue().equals(messageQueue));
     }
 
     private long nextPullOffset(MessageQueue messageQueue) throws MQClientException {
-        long offset = -1;
+        long offset;
         long seekOffset = assignedMessageQueue.getSeekOffset(messageQueue);
         if (seekOffset != -1) {
             offset = seekOffset;
@@ -713,6 +711,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     return;
                 }
 
+                // 流量控制
                 if ((long) consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchSize() > defaultLitePullConsumer.getPullThresholdForAll()) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL, TimeUnit.MILLISECONDS);
                     if ((consumeRequestFlowControlTimes++ % 1000) == 0) {
@@ -754,7 +753,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     return;
                 }
 
-                long offset = 0L;
+                long offset;
                 try {
                     offset = nextPullOffset(messageQueue);
                 } catch (Exception e) {
@@ -782,10 +781,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     }
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
+                            // 严格保证顺序性，通过锁实现。
                             final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
                             synchronized (objLock) {
                                 if (pullResult.getMsgFoundList() != null && !pullResult.getMsgFoundList().isEmpty() && assignedMessageQueue.getSeekOffset(messageQueue) == -1) {
                                     processQueue.putMessage(pullResult.getMsgFoundList());
+                                    // 提交到消费请求阻塞队列中。
                                     submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), messageQueue, processQueue));
                                 }
                             }
@@ -833,6 +834,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout);
     }
 
+    // important 拉取消息实现
     private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,
         boolean block,
         long timeout)
@@ -869,6 +871,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             CommunicationMode.SYNC,
             null
         );
+        // 对拉取的数据进行转换，byte -> message
         this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
         if (!this.consumeMessageHookList.isEmpty()) {
             ConsumeMessageContext consumeMessageContext = new ConsumeMessageContext();
@@ -886,7 +889,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void resetTopic(List<MessageExt> msgList) {
-        if (null == msgList || msgList.size() == 0) {
+        if (null == msgList || msgList.isEmpty()) {
             return;
         }
 

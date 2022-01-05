@@ -51,6 +51,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
      * @param mqAll 当前 topic 下的所有 MessageQueue
      * @param mqDivided 分配到当前 consumer 的 MessageQueue
      */
+    // 典型的 listener 模式。
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
         MessageQueueListener messageQueueListener = this.litePullConsumerImpl.getDefaultLitePullConsumer().getMessageQueueListener();

@@ -521,7 +521,16 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * 根据 consumer 请求来 broker 拉取指定的消息
+     * important 根据 consumer 请求来 broker 拉取指定的消息
+     */
+    /**
+     *
+     * @param group Consumer group that launches this query.
+     * @param topic Topic to query.
+     * @param queueId Queue ID to query.
+     * @param offset Logical offset to start from.
+     * @param maxMsgNums Maximum count of messages to query.
+     * @param messageFilter Message filter used to screen desired messages.
      */
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
                                        final int maxMsgNums,
@@ -624,7 +633,7 @@ public class DefaultMessageStore implements MessageStore {
 
                             // 根据前面找到的 offset 和 size，去 commitlog 查找数据。
                             SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
-                            if (null == selectResult) {
+                            if (selectResult == null) {
                                 if (getResult.getBufferTotalSize() == 0) {
                                     status = GetMessageStatus.MESSAGE_WAS_REMOVING;
                                 }
@@ -662,7 +671,6 @@ public class DefaultMessageStore implements MessageStore {
                                 * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
                         getResult.setSuggestPullingFromSlave(diff > memory);
                     } finally {
-
                         bufferConsumeQueue.release();
                     }
                 } else {

@@ -23,6 +23,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Objects;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
@@ -89,7 +91,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         return false;
     }
 
-    // 处理拉取消息请求
+    // important 处理拉取消息请求
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
@@ -97,6 +99,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         final PullMessageRequestHeader requestHeader =
             (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
+        // 写回。
         response.setOpaque(request.getOpaque());
 
         log.debug("receive PullMessage request command, {}", request);
@@ -162,7 +165,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                         requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getSubscription(),
                         requestHeader.getExpressionType(), requestHeader.getSubVersion()
                     );
-                    assert consumerFilterData != null;
+                    Objects.requireNonNull(consumerFilterData);
                 }
             } catch (Exception e) {
                 log.warn("Parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(),
