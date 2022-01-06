@@ -15,7 +15,7 @@ public class SampleProducer {
         DefaultMQProducer producer = new DefaultMQProducer("syn1c-group-name");
         producer.setNamesrvAddr("localhost:9876");
         producer.start();
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1000; i++) {
 
             Message message = new Message("TestPull", "TagA", ("Hello World" + i).getBytes(StandardCharsets.UTF_8));
             SendResult result = producer.send(message);

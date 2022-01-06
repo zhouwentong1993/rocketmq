@@ -67,6 +67,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
         // 先持久化再删除？
+        // update 2022年01月06日18:50:07 对的，保留一些历史数据。
         this.litePullConsumerImpl.getOffsetStore().persist(mq);
         this.litePullConsumerImpl.getOffsetStore().removeOffset(mq);
         return true;

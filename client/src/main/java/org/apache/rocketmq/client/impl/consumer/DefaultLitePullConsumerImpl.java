@@ -642,8 +642,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private long fetchConsumeOffset(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
-        long offset = this.rebalanceImpl.computePullFromWhereWithException(messageQueue);
-        return offset;
+        return this.rebalanceImpl.computePullFromWhereWithException(messageQueue);
     }
 
     public long committed(MessageQueue messageQueue) throws MQClientException {
