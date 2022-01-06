@@ -83,6 +83,7 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
         );
 
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+            // group name -> 配置 映射关系
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     data.getGroupName());

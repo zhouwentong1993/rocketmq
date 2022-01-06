@@ -84,7 +84,7 @@ public class Broker2Client {
     public void notifyConsumerIdsChanged(
         final Channel channel,
         final String consumerGroup) {
-        if (null == consumerGroup) {
+        if (consumerGroup == null) {
             log.error("notifyConsumerIdsChanged consumerGroup is null");
             return;
         }

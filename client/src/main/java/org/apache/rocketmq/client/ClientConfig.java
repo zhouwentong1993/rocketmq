@@ -77,6 +77,14 @@ public class ClientConfig {
         return sb.toString();
     }
 
+    public static void main(String[] args) {
+
+        ClientConfig clientConfig = new ClientConfig();
+        clientConfig.setUnitName("center");
+        String s = clientConfig.buildMQClientId();
+        System.out.println(s);
+    }
+
     public String getClientIP() {
         return clientIP;
     }

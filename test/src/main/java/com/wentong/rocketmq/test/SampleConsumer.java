@@ -15,15 +15,8 @@ public class SampleConsumer {
         DefaultLitePullConsumer consumer = new DefaultLitePullConsumer("litepull");
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setAutoCommit(true);
-        consumer.subscribe("TestPull", "*");
-//        consumer.registerTopicMessageQueueChangeListener(new TopicMessageQueueChangeListener(){
-//
-//            @Override
-//            public void onChanged(String topic, Set<MessageQueue> messageQueues) {
-//
-//            }
-//        });
         consumer.start();
+        consumer.subscribe("TestPull", "*");
         while (true) {
             List<MessageExt> messages = consumer.poll(1000);
             for (MessageExt message : messages) {
@@ -31,17 +24,5 @@ public class SampleConsumer {
             }
             TimeUnit.SECONDS.sleep(1);
         }
-//        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("basic-push");
-//        consumer.setNamesrvAddr("localhost:9876");
-//        consumer.subscribe("TopicTest1", "*");
-//        consumer.registerMessageListener((MessageListenerConcurrently) (list, consumeConcurrentlyContext) -> {
-//            System.out.println(Thread.currentThread().getName());
-//            System.out.println(list);
-//            System.out.println("----------");
-//            System.out.println(consumeConcurrentlyContext);
-//            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-//        });
-//        consumer.start();
     }
-
 }

@@ -130,6 +130,7 @@ public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implemen
         return null;
     }
 
+    // important broker 主动触发重平衡时间点。
     public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         try {
@@ -152,7 +153,7 @@ public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implemen
         log.info("invoke reset offset operation from broker. brokerAddr={}, topic={}, group={}, timestamp={}",
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(), requestHeader.getGroup(),
             requestHeader.getTimestamp());
-        Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
+        Map<MessageQueue, Long> offsetTable = new HashMap<>();
         if (request.getBody() != null) {
             ResetOffsetBody body = ResetOffsetBody.decode(request.getBody(), ResetOffsetBody.class);
             offsetTable = body.getOffsetTable();

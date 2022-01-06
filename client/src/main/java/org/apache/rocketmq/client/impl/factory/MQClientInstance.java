@@ -343,7 +343,7 @@ public class MQClientInstance {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
-                    // 已经加锁了，其实没有比较用 ConcurrentHashMap 了。
+                    // 已经加锁了，其实没有必要用 ConcurrentHashMap 了。
                     ConcurrentHashMap<String, HashMap<Long, String>> updatedTable = new ConcurrentHashMap<>();
 
                     Iterator<Entry<String, HashMap<Long, String>>> itBrokerTable = this.brokerAddrTable.entrySet().iterator();
@@ -424,6 +424,7 @@ public class MQClientInstance {
         }
     }
 
+    // broker 知道 consumer 的所有数据。通过心跳可以知道。
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
@@ -893,6 +894,7 @@ public class MQClientInstance {
         this.adminExtTable.remove(group);
     }
 
+    // 立马触发一次重平衡操作
     public void rebalanceImmediately() {
         this.rebalanceService.wakeup();
     }

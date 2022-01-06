@@ -36,9 +36,9 @@ public class ConsumerGroupInfo {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final String groupName;
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
-        new ConcurrentHashMap<String, SubscriptionData>();
+        new ConcurrentHashMap<>();
     private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
-        new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
+        new ConcurrentHashMap<>(16);
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
@@ -53,11 +53,9 @@ public class ConsumerGroupInfo {
     }
 
     public ClientChannelInfo findChannel(final String clientId) {
-        Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<Channel, ClientChannelInfo> next = it.next();
-            if (next.getValue().getClientId().equals(clientId)) {
-                return next.getValue();
+        for (Entry<Channel, ClientChannelInfo> info : this.channelInfoTable.entrySet()) {
+            if (info.getValue().getClientId().equals(clientId)) {
+                return info.getValue();
             }
         }
 
@@ -73,21 +71,15 @@ public class ConsumerGroupInfo {
     }
 
     public List<Channel> getAllChannel() {
-        List<Channel> result = new ArrayList<>();
 
-        result.addAll(this.channelInfoTable.keySet());
-
-        return result;
+        return new ArrayList<>(this.channelInfoTable.keySet());
     }
 
     public List<String> getAllClientId() {
         List<String> result = new ArrayList<>();
 
-        Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
-
-        while (it.hasNext()) {
-            Entry<Channel, ClientChannelInfo> entry = it.next();
-            ClientChannelInfo clientChannelInfo = entry.getValue();
+        for (Entry<Channel, ClientChannelInfo> info : this.channelInfoTable.entrySet()) {
+            ClientChannelInfo clientChannelInfo = info.getValue();
             result.add(clientChannelInfo.getClientId());
         }
 
@@ -113,6 +105,9 @@ public class ConsumerGroupInfo {
         return false;
     }
 
+    /**
+     * @return true -> 更新成功，有新的 consumer 注册进来了。 false -> 没有更新，代表当前 channel 已经存在过了。
+     */
     public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
         MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
@@ -121,9 +116,10 @@ public class ConsumerGroupInfo {
         this.consumeFromWhere = consumeFromWhere;
 
         ClientChannelInfo infoOld = this.channelInfoTable.get(infoNew.getChannel());
-        if (null == infoOld) {
+        // 新建立的 channel，代表新的 consumer 出现了。
+        if (infoOld == null) {
             ClientChannelInfo prev = this.channelInfoTable.put(infoNew.getChannel(), infoNew);
-            if (null == prev) {
+            if (prev == null) {
                 log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
                     messageModel, infoNew.toString());
                 updated = true;
@@ -151,6 +147,7 @@ public class ConsumerGroupInfo {
 
         for (SubscriptionData sub : subList) {
             SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
+            // 订阅了新的 topic
             if (old == null) {
                 SubscriptionData prev = this.subscriptionTable.putIfAbsent(sub.getTopic(), sub);
                 if (null == prev) {

@@ -37,6 +37,7 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
             return;
         }
         switch (event) {
+            // 处理 change 事件。
             case CHANGE:
                 if (args == null || args.length < 1) {
                     return;

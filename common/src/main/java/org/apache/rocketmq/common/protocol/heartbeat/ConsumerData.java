@@ -15,9 +15,6 @@
  * limitations under the License.
  */
 
-/**
- * $Id: ConsumerData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
 package org.apache.rocketmq.common.protocol.heartbeat;
 
 import java.util.HashSet;
@@ -29,7 +26,7 @@ public class ConsumerData {
     private ConsumeType consumeType;
     private MessageModel messageModel;
     private ConsumeFromWhere consumeFromWhere;
-    private Set<SubscriptionData> subscriptionDataSet = new HashSet<SubscriptionData>();
+    private Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
     private boolean unitMode;
 
     public String getGroupName() {

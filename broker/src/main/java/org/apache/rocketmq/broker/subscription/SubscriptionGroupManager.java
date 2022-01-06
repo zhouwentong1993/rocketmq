@@ -35,9 +35,9 @@ public class SubscriptionGroupManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
-        new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
+        new ConcurrentHashMap<>(1024);
     private final DataVersion dataVersion = new DataVersion();
-    private transient BrokerController brokerController;
+    private BrokerController brokerController;
 
     public SubscriptionGroupManager() {
         this.init();
@@ -119,7 +119,7 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
-        if (null == subscriptionGroupConfig) {
+        if (subscriptionGroupConfig == null) {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
                 subscriptionGroupConfig.setGroupName(group);

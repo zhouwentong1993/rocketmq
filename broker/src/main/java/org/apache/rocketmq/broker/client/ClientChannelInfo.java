@@ -21,6 +21,7 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public class ClientChannelInfo {
     private final Channel channel;
+    // clientId 是标识消费者的唯一标识
     private final String clientId;
     private final LanguageCode language;
     private final int version;
