@@ -427,6 +427,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                         response = null;
                         break;
                     }
+                    break;
 
                 case ResponseCode.PULL_RETRY_IMMEDIATELY:
                     break;
