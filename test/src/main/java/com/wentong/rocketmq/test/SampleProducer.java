@@ -33,7 +33,7 @@ public class SampleProducer {
 //            }
 //        }
 
-        producer.shutdown();
+//        producer.shutdown();
     }
 
 }

@@ -31,7 +31,7 @@ import org.apache.rocketmq.store.ConsumeQueueExt;
 
 public class PullRequestHoldService extends ServiceThread {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private static final String TOPIC_QUEUEID_SEPARATOR = "@";
+    private static final String TOPIC_QUEUE_ID_SEPARATOR = "@";
     private final BrokerController brokerController;
     private final SystemClock systemClock = new SystemClock();
     private ConcurrentMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
@@ -44,7 +44,7 @@ public class PullRequestHoldService extends ServiceThread {
     public void suspendPullRequest(final String topic, final int queueId, final PullRequest pullRequest) {
         String key = this.buildKey(topic, queueId);
         ManyPullRequest mpr = this.pullRequestTable.get(key);
-        if (null == mpr) {
+        if (mpr == null) {
             mpr = new ManyPullRequest();
             ManyPullRequest prev = this.pullRequestTable.putIfAbsent(key, mpr);
             if (prev != null) {
@@ -57,7 +57,7 @@ public class PullRequestHoldService extends ServiceThread {
 
     private String buildKey(final String topic, final int queueId) {
         return topic +
-                TOPIC_QUEUEID_SEPARATOR +
+                TOPIC_QUEUE_ID_SEPARATOR +
                 queueId;
     }
 
@@ -67,7 +67,7 @@ public class PullRequestHoldService extends ServiceThread {
         while (!this.isStopped()) {
             try {
                 if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
-                    this.waitForRunning(5 * 1000);
+                    this.waitForRunning(5 * 1000L);
                 } else {
                     this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());
                 }
@@ -93,7 +93,7 @@ public class PullRequestHoldService extends ServiceThread {
 
     private void checkHoldRequest() {
         for (String key : this.pullRequestTable.keySet()) {
-            String[] kArray = key.split(TOPIC_QUEUEID_SEPARATOR);
+            String[] kArray = key.split(TOPIC_QUEUE_ID_SEPARATOR);
             if (2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
@@ -111,7 +111,8 @@ public class PullRequestHoldService extends ServiceThread {
         notifyMessageArriving(topic, queueId, maxOffset, null, 0, null, null);
     }
 
-    // read 如果 consumer 和 broker 保持长链接关系，那么当消息到来时，会触发这段逻辑。
+    // read 如果 consumer 和 broker 保持长连接关系，那么当消息到来时，会触发这段逻辑。
+    // update 2022年01月11日17:22:05，不是长连接，而是长轮询。注意区分，见 notion 笔记。
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode,
         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String key = this.buildKey(topic, queueId);
@@ -123,6 +124,7 @@ public class PullRequestHoldService extends ServiceThread {
 
                 for (PullRequest request : requestList) {
                     long newestOffset = maxOffset;
+                    // 更新最新的
                     if (newestOffset <= request.getPullFromThisOffset()) {
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     }
@@ -130,7 +132,7 @@ public class PullRequestHoldService extends ServiceThread {
                     if (newestOffset > request.getPullFromThisOffset()) {
                         boolean match = request.getMessageFilter().isMatchedByConsumeQueue(tagsCode,
                             new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap));
-                        // match by bit map, need eval again when properties is not null.
+                        // match by bit map, need eval again when properties are not null.
                         if (match && properties != null) {
                             match = request.getMessageFilter().isMatchedByCommitLog(null, properties);
                         }

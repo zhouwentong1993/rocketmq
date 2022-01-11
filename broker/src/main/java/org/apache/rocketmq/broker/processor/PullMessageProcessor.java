@@ -99,7 +99,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         final PullMessageRequestHeader requestHeader =
             (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
-        // 写回。
+        // 写回唯一请求号。
         response.setOpaque(request.getOpaque());
 
         log.debug("receive PullMessage request command, {}", request);
@@ -553,7 +553,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
     }
 
     public void executeRequestWhenWakeup(final Channel channel,
-        final RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand request) {
         Runnable run = () -> {
             try {
                 final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
