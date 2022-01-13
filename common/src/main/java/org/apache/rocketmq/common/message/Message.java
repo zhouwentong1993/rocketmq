@@ -66,7 +66,7 @@ public class Message implements Serializable {
 
     void putProperty(final String name, final String value) {
         if (null == this.properties) {
-            this.properties = new HashMap<String, String>();
+            this.properties = new HashMap<>();
         }
 
         this.properties.put(name, value);
