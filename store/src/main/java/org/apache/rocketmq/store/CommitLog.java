@@ -339,6 +339,7 @@ public class CommitLog {
 
                 // Timing message processing
                 {
+                    // important 如果是延时消息，则把 tagsCode 变成被消费时的时间戳。
                     String t = propertiesMap.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
                     if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(topic) && t != null) {
                         int delayLevel = Integer.parseInt(t);
@@ -348,6 +349,7 @@ public class CommitLog {
                         }
 
                         if (delayLevel > 0) {
+                            // 用消息生成的时间 + 延时时间即为消息应该被消费的时间
                             tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(delayLevel,
                                     storeTimestamp);
                         }

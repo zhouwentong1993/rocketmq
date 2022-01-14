@@ -1177,7 +1177,7 @@ public class DefaultMessageStore implements MessageStore {
 
     public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
         SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
-        if (null != sbr) {
+        if (sbr != null) {
             try {
                 return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
             } finally {

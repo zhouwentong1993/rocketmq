@@ -260,6 +260,7 @@ public class ScheduleMessageService extends ConfigManager {
             long failScheduleOffset = offset;
 
             if (cq != null) {
+                // 返回从 offset 开始，到能持久化的数据
                 SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
                 if (bufferCQ != null) {
                     try {
@@ -290,6 +291,7 @@ public class ScheduleMessageService extends ConfigManager {
 
                             long countdown = deliverTimestamp - now;
 
+                            // 到时间了
                             if (countdown <= 0) {
                                 MessageExt msgExt =
                                         ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
@@ -315,7 +317,7 @@ public class ScheduleMessageService extends ConfigManager {
                                                         putMessageResult.getAppendMessageResult().getWroteBytes());
                                                 ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
                                             }
-                                        } else {
+                                        } else { // 没放成功，缓一会儿。10s
                                             // XXX: warn and notify me
                                             log.error(
                                                     "ScheduleMessageService, a message time up, but repute it failed, topic: {} msgId {}",
@@ -341,6 +343,9 @@ public class ScheduleMessageService extends ConfigManager {
                                     }
                                 }
                             } else {
+                                // 如果没有到时间，则需要等待 countdown 时间再去触发，这算是一个优化点，避免无效轮询。
+                                // 这种设计能成立的前提是：① RocketMQ 延时消息的多队列设计。② RocketMQ 只支持固定时间的延时消息。
+                                // 如果是其它的延时队列这样设计就不对了，因为中间可能被插入。只能以固定短时间轮询。
                                 ScheduleMessageService.this.timer.schedule(
                                         new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
                                         countdown);
