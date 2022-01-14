@@ -13,14 +13,8 @@ public class SampleDelayProducer {
         producer.setNamesrvAddr("localhost:9876");
         producer.setSendMsgTimeout(100 * 1000);
         producer.start();
-//        for (int i = 0; i < 10; i++) {
-//            Message message = new Message("delay", ("hello-delay" + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8));
-//            message.setDelayTimeLevel(getDelayLevel("1h"));
-//            producer.send(message);
-//        }
-
         for (int i = 0; i < 18; i++) {
-            Message message = new Message("delay", ("hello-delay" + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8));
+            Message message = new Message("delay", ("hello-delay" + i).getBytes(StandardCharsets.UTF_8));
             message.setDelayTimeLevel(i + 1);
             producer.send(message);
         }
