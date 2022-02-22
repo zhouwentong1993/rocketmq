@@ -146,6 +146,7 @@ public class PullAPIWrapper {
         }
     }
 
+    // 拉取消息实现
     public PullResult pullKernelImpl(
             final MessageQueue mq,
             final String subExpression,

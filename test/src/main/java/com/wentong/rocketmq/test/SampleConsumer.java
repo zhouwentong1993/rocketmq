@@ -15,7 +15,6 @@ public class SampleConsumer {
         DefaultLitePullConsumer consumer = new DefaultLitePullConsumer("litepull");
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setAutoCommit(true);
-        consumer.setConsumerTimeoutMillisWhenSuspend(10);
         consumer.start();
         consumer.subscribe("TestPull", "*");
         while (true) {

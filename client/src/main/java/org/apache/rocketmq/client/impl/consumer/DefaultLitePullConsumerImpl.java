@@ -506,6 +506,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     // 这是对外的接口，通过这个接口，consumer poll 任务进行处理。
+    // 这个 poll 不是真正地去拉取 broker 数据，而是拉取 consumer 已经拉取回来的数据。
     public synchronized List<MessageExt> poll(long timeout) {
         try {
             checkServiceState();
@@ -752,6 +753,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     return;
                 }
 
+                // 获取下一次的拉取的 offset
                 long offset;
                 try {
                     offset = nextPullOffset(messageQueue);
@@ -802,6 +804,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     log.error("An error occurred in pull message process.", e);
                 }
 
+                // 相当于又重新开始了一次调度。
                 if (!this.isCancelled()) {
                     scheduledThreadPoolExecutor.schedule(this, pullDelayTimeMills, TimeUnit.MILLISECONDS);
                 } else {
