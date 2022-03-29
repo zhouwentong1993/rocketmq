@@ -16,7 +16,7 @@ public class SampleConsumer {
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setAutoCommit(true);
         consumer.start();
-        consumer.subscribe("TestPull", "*");
+        consumer.subscribe("TestPull", "Normal");
         while (true) {
             List<MessageExt> messages = consumer.poll(1000);
             for (MessageExt message : messages) {

@@ -15,25 +15,17 @@ public class SampleProducer {
         DefaultMQProducer producer = new DefaultMQProducer("syn1c-group-name");
         producer.setNamesrvAddr("localhost:9876");
         producer.start();
-        for (int i = 0; i < 1000; i++) {
-
-            Message message = new Message("TestPull", "TagA", ("Hello World" + i).getBytes(StandardCharsets.UTF_8));
+        for (int i = 0; i < 10; i++) {
+            Message message = new Message("TestPull", "Normal", ("Hello World" + i).getBytes(StandardCharsets.UTF_8));
             SendResult result = producer.send(message);
             System.out.println(result);
         }
 
-//        for (int i = 0; i < 100; i++) {
-//            try {
-//
-//                Message message = new Message("TopicTest", "TagA", ("Hello RocketMQ" + i).getBytes(StandardCharsets.UTF_8));
-//                SendResult result = producer.send(message);
-//                System.out.println(result);
-//            } catch (Exception ignore) {
-//
-//            }
-//        }
-
-//        producer.shutdown();
+        for (int i = 0; i < 10; i++) {
+            Message message = new Message("TestPull", "gray", ("Hello World" + i).getBytes(StandardCharsets.UTF_8));
+            SendResult result = producer.send(message);
+            System.out.println(result);
+        }
     }
 
 }
