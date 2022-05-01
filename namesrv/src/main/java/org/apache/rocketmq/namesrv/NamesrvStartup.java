@@ -52,7 +52,7 @@ public class NamesrvStartup {
 
     // 入口函数
     public static void main(String[] args) {
-        setEnv("ROCKETMQ_HOME", "/Users/renmai/IdeaProjects/rocketmq/distribution/target/rocketmq-4.9.2-SNAPSHOT/rocketmq-4.9.2-SNAPSHOT");
+        setEnv("ROCKETMQ_HOME", "/Users/zhouwentong/IdeaProjects/rocketmq/distribution/target/rocketmq-4.9.2-SNAPSHOT/rocketmq-4.9.2-SNAPSHOT");
         main0(args);
     }
 

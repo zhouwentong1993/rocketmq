@@ -16,13 +16,13 @@ public class SampleProducer {
         producer.setNamesrvAddr("localhost:9876");
         producer.start();
         for (int i = 0; i < 10; i++) {
-            Message message = new Message("TestPull", "Normal", ("Hello World" + i).getBytes(StandardCharsets.UTF_8));
+            Message message = new Message("TestPull12", "Normal", ("Hello World" + i).getBytes(StandardCharsets.UTF_8));
             SendResult result = producer.send(message);
             System.out.println(result);
         }
 
         for (int i = 0; i < 10; i++) {
-            Message message = new Message("TestPull", "gray", ("Hello World" + i).getBytes(StandardCharsets.UTF_8));
+            Message message = new Message("TestPull32", "gray", ("Hello World" + i).getBytes(StandardCharsets.UTF_8));
             SendResult result = producer.send(message);
             System.out.println(result);
         }

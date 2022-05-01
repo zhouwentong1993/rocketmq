@@ -56,8 +56,11 @@ public class BrokerStartup {
     public static String configFile = null;
     public static InternalLogger log;
 
+    private static String file = "/Users/zhouwentong/IdeaProjects/rocketmq/distribution/conf/2m-2s-async/broker-b-m.properties";
+
+
     public static void main(String[] args) {
-        setEnv("ROCKETMQ_HOME", "/Users/renmai/IdeaProjects/rocketmq/distribution/target/rocketmq-4.9.2-SNAPSHOT/rocketmq-4.9.2-SNAPSHOT");
+        setEnv("ROCKETMQ_HOME", "/Users/zhouwentong/IdeaProjects/rocketmq/distribution/target/rocketmq-4.9.2-SNAPSHOT/rocketmq-4.9.2-SNAPSHOT");
         start(createBrokerController(args));
     }
 
@@ -67,8 +70,7 @@ public class BrokerStartup {
 
             controller.start();
 
-            String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
-                    + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+            String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", " + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
 
             if (null != controller.getBrokerConfig().getNamesrvAddr()) {
                 tip += " and name server is " + controller.getBrokerConfig().getNamesrvAddr();
@@ -104,8 +106,7 @@ public class BrokerStartup {
 
         try {
             Options options = ServerUtil.buildCommandlineOptions(new Options());
-            commandLine = ServerUtil.parseCmdLine("mqbroker", args, buildCommandlineOptions(options),
-                    new PosixParser());
+            commandLine = ServerUtil.parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
             }
@@ -114,8 +115,7 @@ public class BrokerStartup {
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
 
-            nettyClientConfig.setUseTLS(Boolean.parseBoolean(System.getProperty(TLS_ENABLE,
-                    String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
+            nettyClientConfig.setUseTLS(Boolean.parseBoolean(System.getProperty(TLS_ENABLE, String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
@@ -125,20 +125,19 @@ public class BrokerStartup {
             }
 
 //            if (commandLine.hasOption('c')) {
-                String file = "/Users/renmai/IdeaProjects/rocketmq/distribution/conf/2m-2s-async/broker-a-m.properties";
-                configFile = file;
-                InputStream in = new BufferedInputStream(new FileInputStream(file));
-                properties = new Properties();
-                properties.load(in);
+            configFile = file;
+            InputStream in = new BufferedInputStream(new FileInputStream(file));
+            properties = new Properties();
+            properties.load(in);
 
-                properties2SystemEnv(properties);
-                MixAll.properties2Object(properties, brokerConfig);
-                MixAll.properties2Object(properties, nettyServerConfig);
-                MixAll.properties2Object(properties, nettyClientConfig);
-                MixAll.properties2Object(properties, messageStoreConfig);
+            properties2SystemEnv(properties);
+            MixAll.properties2Object(properties, brokerConfig);
+            MixAll.properties2Object(properties, nettyServerConfig);
+            MixAll.properties2Object(properties, nettyClientConfig);
+            MixAll.properties2Object(properties, messageStoreConfig);
 
-                BrokerPathConfigHelper.setBrokerConfigPath(file);
-                in.close();
+            BrokerPathConfigHelper.setBrokerConfigPath(file);
+            in.close();
 //            }
 
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
@@ -156,9 +155,7 @@ public class BrokerStartup {
                         RemotingUtil.string2SocketAddress(addr);
                     }
                 } catch (Exception e) {
-                    System.out.printf(
-                            "The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%n",
-                            namesrvAddr);
+                    System.out.printf("The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%n", namesrvAddr);
                     System.exit(-3);
                 }
             }
@@ -212,11 +209,7 @@ public class BrokerStartup {
             MixAll.printObjectProperties(log, nettyClientConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
 
-            final BrokerController controller = new BrokerController(
-                    brokerConfig,
-                    nettyServerConfig,
-                    nettyClientConfig,
-                    messageStoreConfig);
+            final BrokerController controller = new BrokerController(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig);
             // remember all configs to prevent discard
             controller.getConfiguration().registerConfig(properties);
 
