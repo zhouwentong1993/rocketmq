@@ -786,6 +786,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                             final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
                             synchronized (objLock) {
                                 if (pullResult.getMsgFoundList() != null && !pullResult.getMsgFoundList().isEmpty() && assignedMessageQueue.getSeekOffset(messageQueue) == -1) {
+                                    // 这一步的用意是什么？为什么要存到 processQueue 一份，下面直接提交到 blocking queue 了。fixme
                                     processQueue.putMessage(pullResult.getMsgFoundList());
                                     // 提交到消费请求阻塞队列中。
                                     submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), messageQueue, processQueue));

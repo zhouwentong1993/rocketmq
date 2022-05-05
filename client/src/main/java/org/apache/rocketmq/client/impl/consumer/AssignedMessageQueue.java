@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import org.apache.rocketmq.common.message.MessageQueue;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
  * 已经分配的消息队列？？fixme
@@ -157,6 +158,7 @@ public class AssignedMessageQueue {
         }
     }
 
+    // 分配 Message Queue 给消费者
     private void addAssignedMessageQueue(Collection<MessageQueue> assigned) {
         for (MessageQueue messageQueue : assigned) {
             if (!this.assignedMessageQueueState.containsKey(messageQueue)) {

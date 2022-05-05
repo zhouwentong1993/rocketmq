@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Queue consumption snapshot
- * 核心数据结构
+ * 核心数据结构，存放从 broker 拉取回来的一手数据，等待消费线程的处理。
  */
 public class ProcessQueue {
     public static final long REBALANCE_LOCK_MAX_LIVE_TIME =
@@ -42,7 +42,7 @@ public class ProcessQueue {
     private static final long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final InternalLogger log = ClientLogger.getLog();
     private final ReadWriteLock treeMapLock = new ReentrantReadWriteLock();
-    // 这是干嘛的？
+    // 这是干嘛的？猜测应当是存放消息的数据结构
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<>();
     private final AtomicLong msgCount = new AtomicLong();
     private final AtomicLong msgSize = new AtomicLong();
@@ -50,6 +50,7 @@ public class ProcessQueue {
     /**
      * A subset of msgTreeMap, will only be used when orderly consume
      */
+    // 这个应该是存放有序结构
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
     private volatile long queueOffsetMax = 0L;
