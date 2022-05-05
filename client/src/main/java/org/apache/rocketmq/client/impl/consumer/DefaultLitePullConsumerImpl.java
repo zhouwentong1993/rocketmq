@@ -534,6 +534,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 List<MessageExt> messages = consumeRequest.getMessageExts();
                 long offset = consumeRequest.getProcessQueue().removeMessage(messages);
                 assignedMessageQueue.updateConsumeOffset(consumeRequest.getMessageQueue(), offset);
+                // update
                 //If namespace not null , reset Topic without namespace.
                 this.resetTopic(messages);
                 return messages;
