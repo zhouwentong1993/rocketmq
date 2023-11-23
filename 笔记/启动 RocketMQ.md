@@ -1,6 +1,8 @@
 ## 构建项目源代码
 
-进入到 rocketmq 路径下，执行 `mvn clean install -Prelease-all -Dmaven.test.skip=true` 。
+进入到 rocketmq 路径下，执行
+
+`mvn clean install -Prelease-all -Dmaven.test.skip=true` 。
 
 **注意：本人对脚本做过更改，否则提示找不到启动类，无法正常启动。**
 
